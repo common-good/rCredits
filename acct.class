@@ -222,8 +222,12 @@ class Acct {
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
     if ($field == 'changes') {
-        return db\get('*', 'r_member_change', 'uid=:id', ['id' => $a->id]);
-        die('There is no longer a changes field in acct');
+        $records = db\records('*', 'r_member_change', 'uid=:id', ['id' => $a->id]);
+        foreach ($records as $record) {
+            $record->old_value = u\decry('S', $record->old_value);
+            $record->new_value = u\decry('S', $record->new_value);
+        }
+        return $records;
     }
     if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
@@ -664,10 +668,12 @@ class Acct {
     $codeName = $a->proSe ? 'cardCode' : 'cardCode2';
     $code = $a->$codeName;
     $changes = $a->agentA->changes;
-    
-    foreach ($changes as $tm => $v) {
-      if ($tm < $created) break;
-      if ($oldCode = @$v[$codeName] and u\hash(str_replace($code, $oldCode, $wanted)) == $proof) return false;
+
+    foreach ($changes as $change) {
+      if ($change->timestamp < $created) break;
+      if ($change->field == $codeName) {
+          if (u\hash(str_replace($code, $change->old_value, $wanted)) == $proof) return false;
+      }
     }
     return true;
   }

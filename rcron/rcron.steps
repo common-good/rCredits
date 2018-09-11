@@ -45,14 +45,14 @@ function extraSetup($feature) {
  *     MAKE Tickle Setup
  *     MAKE Gifts Setup
  *     MAKE Gifts ANonmemberChoosesADonation
- *     MAKE CommunityBits Setup
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Bank Setup
  *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE Bank ANonmemberHasATargetAndRefills
- *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Invoices Setup
  *     MAKE Monthly Setup
  *     MAKE Trust Setup
+ *     MAKE community-bits Setup
  *     MAKE Recache Setup
  *     MAKE Risk Setup
  *     MAKE Weekly Setup
@@ -68,7 +68,6 @@ function members($list) {return t\members($list);}
  *     MAKE Joint AJointAccountDoesNotNeedRefilling
  *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE Gifts Setup
- *     MAKE CommunityBits Setup
  *     MAKE Bank AMemberIsBarelyBelowTarget
  *     MAKE Bank AMemberHasANegativeBalance
  *     MAKE Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
@@ -84,6 +83,7 @@ function members($list) {return t\members($list);}
  *     TEST Invoices Setup
  *     BOTH Invoices UnpaidInvoicesGetHandled
  *     TEST Monthly Setup
+ *     MAKE community-bits Setup
  *     TEST Recache Setup
  *     BOTH Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
@@ -112,7 +112,7 @@ function balances($list) {return t\balances($list);}
  *     MAKE Gifts ADonationInvoiceCanBeCompleted
  *     MAKE Gifts ARecurringDonationCannotBeCompleted
  *     MAKE Gifts ANonmemberChoosesADonation
- *     MAKE CommunityBits CommunityBansSpendingBelowZero
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Bank AMemberIsBarelyBelowTarget
  *     MAKE Bank AMemberHasANegativeBalance
  *     MAKE Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
@@ -128,17 +128,11 @@ function balances($list) {return t\balances($list);}
  *     MAKE Bank ANonmemberHasATargetAndRefills
  *     MAKE Bank MembersBankAccountHasNotBeenVerified
  *     MAKE Bank AMembersBankAccountGetsVerified
- *     MAKE CommunityBits CommunityBansSpendingBelowZero
- *     MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
- *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
- *     MAKE Gifts ADonationInvoiceCanBeCompleted
- *     MAKE Gifts ARecurringDonationCannotBeCompleted
- *     MAKE Gifts ANonmemberChoosesADonation
- *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     MAKE Invoices UnpaidInvoicesGetHandled
  *     MAKE Invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
  *     MAKE Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
  *     MAKE Trust WeCalculateTrust
+ *     MAKE community-bits CommunityBansSpendingBelowZero
  *     MAKE Recache BalancesGetOutOfWhack
  *     MAKE Recache BalancesGetATinyBitOutOfWhack
  *     MAKE Risk Setup
@@ -203,8 +197,8 @@ function relations($relations) {return t\relations($relations);}
  *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
  *     BOTH Gifts ASecondRecurringDonationCanBeCompleted
  *     TEST Gifts ADonationInvoiceCanBeCompleted
- *     TEST Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
  *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+ *     TEST Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
  *     MAKE Invoices Setup
  *     TEST Invoices UnpaidInvoicesGetHandled
  *     MAKE Monthly Setup
@@ -260,7 +254,7 @@ function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs)
 /**
  * we tell (ARG) CO (ARG) with subs: (ARG)
  *
- * in: TEST CommunityBits CommunityBansSpendingBelowZero
+ * in: TEST community-bits CommunityBansSpendingBelowZero
  */
 function weTellCOWithSubs($id, $topic, $subs) {return t\weTellAdmin($topic, $subs, t\uid($id));}
 
@@ -275,10 +269,10 @@ function notices($list) {return t\notices($list);}
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
- * in: TEST Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
- *     TEST Notices AMemberGetsSomeNotices
+ * in: TEST Notices AMemberGetsSomeNotices
  *     TEST Notices AMemberGetsSomeWeeklyNotices
  *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     TEST Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -367,11 +361,11 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  * members have: (ARG)
  *
  * in: BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
- *     MAKE CommunityBits CommunityBansSpendingBelowZero
  *     MAKE Bank AnAccountHasATargetButNoRefills
  *     MAKE Bank MembersBankAccountHasNotBeenVerified
  *     BOTH Bank AMembersBankAccountGetsVerified
  *     TEST Trust WeCalculateTrust
+ *     MAKE community-bits CommunityBansSpendingBelowZero
  *     TEST Risk Setup
  *     TEST Risk WeCalculateRisks
  *     MAKE Weekly AMemberBuildsUpSavings
@@ -531,7 +525,7 @@ function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($inde
 /**
  * stats: (ARG)
  *
- * in: MAKE CommunityBits CommunityBansSpendingBelowZero
+ * in: MAKE community-bits CommunityBansSpendingBelowZero
  */
 function stats($list) {return t\stats($list);}
 

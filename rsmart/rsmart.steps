@@ -42,6 +42,7 @@ function extraSetup() {
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     MAKE Coupons Setup
  *     MAKE Undo Setup
  *     MAKE Time Setup
@@ -57,6 +58,7 @@ function members($list) {return t\members($list);}
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     MAKE Coupons Setup
  *     MAKE Undo Setup
  *     MAKE Time Setup
@@ -72,6 +74,7 @@ function relations($relations) {return t\relations($relations);}
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     TEST Coupons AMemberRedeemsAGiftCoupon
  *     MAKE Undo Setup
  *     MAKE Undo AnAgentAsksToUndoACharge
@@ -212,6 +215,7 @@ function memberHasNoPicture($id) {
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     MAKE Coupons Setup
  *     MAKE Undo Setup
  *     MAKE Time Setup
@@ -230,6 +234,7 @@ function devices($list) {return t\devices($list);}
  *     TEST Exchange Setup
  *     TEST Exchange ACashierAsksToChargeSomeoneForCash
  *     TEST Exchange ACashierAsksToRefundSomeone
+ *     TEST Temp Setup
  *     TEST Undo Setup
  *     TEST Undo AnAgentAsksToUndoAChargeWithInsufficientBalance
  *     TEST Undo AnAgentAsksToUndoARefundWithInsufficientBalance
@@ -404,6 +409,7 @@ function weReturnError($msg) {return weReturnErrorWithSubs($msg, array());}
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     MAKE Coupons Setup
  *     MAKE Undo Setup
  *     MAKE Time Setup
@@ -418,6 +424,7 @@ function selling($selling) {return t\selling($selling);}
  *
  * in: MAKE Joint Setup
  *     MAKE Exchange Setup
+ *     MAKE Temp Setup
  *     MAKE Coupons Setup
  *     MAKE Undo Setup
  *     MAKE Time Setup
@@ -521,7 +528,8 @@ function agentAsksDeviceToChargeForAtForce($agent, $device, $member, $amount, $g
 /**
  * reconciling (ARG) on (ARG) charging (ARG) $(ARG) for (ARG): (ARG) at (ARG) force (ARG)
  *
- * in: MAKE Offline ACashierChargedSomeoneOffline
+ * in: MAKE Temp DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE Offline ACashierChargedSomeoneOffline
  *     MAKE Offline ACashierChargedSomeoneOfflineAndTheyHaveInsufficientBalance
  *     MAKE Offline ACashierChargedSomeoneOfflineButItActuallyWentThrough
  *     MAKE Offline ACashierDeclinedToChargeSomeoneOfflineAndItDidntGoThrough
@@ -614,7 +622,8 @@ function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
 /**
  * members have: (ARG)
  *
- * in: MAKE Identify ACustomerScansTheirOwnCardForSelfservice
+ * in: MAKE Temp DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
+ *     MAKE Identify ACustomerScansTheirOwnCardForSelfservice
  *     MAKE Identify ACustomerScansTheirOwnCardForSelfserviceWithWrongPIN
  *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
  *     MAKE Offline DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOnline
@@ -669,6 +678,7 @@ function withProofOfAgentAmountCreatedMemberCode($agent, $amount, $created, $mem
  * we respond ok txid (ARG) created (ARG) balance (ARG) rewards (ARG) saying: (ARG)
  *
  * in: TEST Joint ACashierAsksToChargeSomeone
+ *     TEST Temp DeviceSendsCorrectOldProofForLegitTxAfterMemberLosesCardWithAppOffline
  *     TEST Undo AnAgentAsksToUndoACharge
  *     TEST Undo AnAgentAsksToUndoAChargeWhenBalanceIsSecret
  *     TEST Undo AnAgentAsksToUndoARefund
