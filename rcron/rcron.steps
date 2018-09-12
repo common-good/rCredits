@@ -56,6 +56,9 @@ function extraSetup($feature) {
  *     MAKE tickle Setup
  *     MAKE trust Setup
  *     MAKE weekly Setup
+ *     MAKE Tickle Setup
+ *     MAKE Trust Setup
+ *     MAKE Weekly Setup
  */
 function members($list) {return t\members($list);}
 
@@ -273,6 +276,7 @@ function notices($list) {return t\notices($list);}
  *     TEST notices AMemberGetsSomeNotices
  *     TEST notices AMemberGetsSomeWeeklyNotices
  *     TEST tickle ANonmemberHasNotAcceptedTheInvitation
+ *     TEST Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -397,6 +401,7 @@ function memberHasDoneStep($id, $step) {return t\doneStep($id, $step);}
  *     MAKE tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  *     MAKE tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ *     MAKE Risk Setup
  */
 function invites($list) {return t\invites($list);}
 
@@ -553,3 +558,4 @@ function these($thing, $list) {return t\these($thing, $list);}
  *     TEST invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
  */
 function countIs($what, $count) {return t\count($what, $count);}
+

@@ -49,6 +49,26 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
 }
 
 /**
+ * Save a record in the given table returning the record ID of the inserted record.
+ * @param string $table: table to save in (anything but users or r_relations)
+ * @param string $idField: name of record ID field (uid or reid)
+ * @param assoc  $record: the record to save (possibly with record ID already chosen)
+ * @return record ID of the inserted record
+ */
+function insert($table, $idField, $record) {
+  if (@$record[$idField]) return db\insert($table, $record); // predestined id (probably for testing)
+  for ($try = 0; $try < 20; $try++) { // limit the retries
+    if (!$id = $record[$idField] = u\firstUnusedId($idField, $table, 1)) break;
+    try {
+      if (db\insert($table, $record)) return $id;
+    } catch (Exception $e) { // BIG MYSTERY: can this happen sometimes with no collision?
+      r\tellAdmin(t('cannot save: ') . $e->getMessage(), $record + ['topic' => t('cannot save')]);
+    }
+  }
+  u\EXPECT(FALSE, "failed to save $table record after $try tries.");
+}
+
+/**
  * Say whether a given payment is giving back rewards to the community.
  * @param int $payer: record id of who is maybe giving back
  * @param int $payee: record id of payee

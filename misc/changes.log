@@ -109,6 +109,9 @@
 . changed donation descriptions, to track regular, roundups, and crumbs separately
 . repaired voting so it works again (after eliminating in-line scripts several months ago)
 
+2018-07-05 v?
+. separated changes in member data out to separate table
+
 2018-06-25 v3.40w
 . separated company fields out into r_company
   eachA(function ($a) {

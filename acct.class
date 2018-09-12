@@ -221,8 +221,15 @@ class Acct {
     if ($nick == 'raw') return $result;
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
-    
-    if (in($field, 'data changes secure vsecure') and !is_array($result)) { // special not yet arrayed
+    if ($field == 'changes') {
+        $records = db\records('*', 'r_member_change', 'uid=:id', ['id' => $a->id]);
+        foreach ($records as $record) {
+            $record->old_value = u\decry('S', $record->old_value);
+            $record->new_value = u\decry('S', $record->new_value);
+        }
+        return $records;
+    }
+    if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
       if ($field != 'data') $result = u\decry('S', $result);
       return (self::$rs[$a->id]->$field = unserialize($result));
@@ -565,21 +572,35 @@ class Acct {
       $ak = $a->$k;
       if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) {
         unset($newChanges[$k]);
-      } else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
+      } // else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
     }
     
     if (!$newChanges) return [];
   
-    $changes = $a->changes; // must precede ->rawChanges
-//    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
-//    for ($k = r\rTime(); isset($changes[$k]); $k++);
-    $time = r\rTime();
-    if (isset($changes[$time])) {
-      $changes[$time] += $newChanges;
-    } else u\preray([$time => $newChanges], $changes); // put the new changes first
-    $changes = serialize($changes);
-//    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) 
-		$changes = u\cry('S', $changes);
+//     $changes = $a->changes; // must precede ->rawChanges
+// //    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
+// //    for ($k = r\rTime(); isset($changes[$k]); $k++);
+//     $time = r\rTime();
+//     if (isset($changes[$time])) {
+//       $changes[$time] += $newChanges;
+//     } else u\preray([$time => $newChanges], $changes); // put the new changes first
+//     $changes = serialize($changes);
+// //    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) 
+// 		$changes = u\cry('S', $changes);
+
+    
+    foreach ($newChanges as $k => $v) {  // add a r_member_change record for each changed field
+        $record_id = u\firstUnusedId('record_id', 'r_member_change');
+        $record = [ 'record_id' => $record_id,
+                    'uid' => $a->uid,
+                    'timestamp' => r\rTime(),
+                    'field' => $k,
+                    'old_value' => u\cry('S', '' . ($a->$k)),
+                    'new_value' => u\cry('S', '' . $v),
+                    'who_made_change' => $a->agentId ];
+        r\insert('r_member_change', 'record_id', $record);
+    }
+    
     return compact('changes');
   }
   
@@ -647,10 +668,12 @@ class Acct {
     $codeName = $a->proSe ? 'cardCode' : 'cardCode2';
     $code = $a->$codeName;
     $changes = $a->agentA->changes;
-    
-    foreach ($changes as $tm => $v) {
-      if ($tm < $created) break;
-      if ($oldCode = @$v[$codeName] and u\hash(str_replace($code, $oldCode, $wanted)) == $proof) return false;
+
+    foreach ($changes as $change) {
+      if ($change->timestamp < $created) break;
+      if ($change->field == $codeName) {
+          if (u\hash(str_replace($code, $change->old_value, $wanted)) == $proof) return false;
+      }
     }
     return true;
   }
