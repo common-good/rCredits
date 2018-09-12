@@ -301,6 +301,7 @@ function tableDefs($schema = []) {
     'bankAccount' => dbFld(t('Bank account for the transfer'), 'blob'), // "blob tiny" does not exist
     'risk' => dbFld(t('suspiciousness rating'), 'float medium', NULL), // NULL means never set yet
     'risks' => dbFld(t('list of risk factors'), 'int big', 0, TRUE),
+		'reconciled' => dbFld(t('bank transaction ID'), 'int big', TRUE),
     'channel' => dbFld(t('through what medium was the transaction entered'), 'int tiny'),
 //    'members' => isGAME ? dbFld(t('number of members represented'), 'int medium', 1) : NULL,
   );

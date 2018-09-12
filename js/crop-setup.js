@@ -4,6 +4,7 @@ var uniq = (new Date()).getTime(); // unique value (so default picture does not 
 $('#photoUp').css('background-image', 'url(' + baseUrl + '/account-photo?t=' + uniq + ')'); 
 
 var err = false;
+var maxsize = 6; // maximum photo file size, in MB
 var croppicOptions = {
 //      uploadUrl:'$base_url/settings/photo',
   cropUrl:baseUrl + '/settings/photo/upload',
@@ -19,8 +20,8 @@ var croppicOptions = {
   onBeforeImgUpload: function() {
     if (vs['recrop']) { $('#choosePhotoWrap').hide(); return; } // else recrop fails (space after { is required)
     var photoUp = jQuery('#photoUp_imgUploadField').get(0);
-    if (photoUp.files[0].size > vs['maxSize'] * 1024 * 1024) {
-      croppic.err = 'That photo file is too big. The maximum file size is ' + vs['maxSize'] + 'MB. Reduce the file size and try again (or choose a smaller file).';
+    if (photoUp.files[0].size > maxSize * 1024 * 1024) {
+      croppic.err = 'That photo file is too big. The maximum file size is ' + maxSize + 'MB. Reduce the file size and try again (or choose a smaller file).';
     }
   },
   onAfterImgUpload: function() { console.log('onAfterImgUpload') }, 

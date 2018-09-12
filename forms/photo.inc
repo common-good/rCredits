@@ -81,7 +81,7 @@ EOF
 //  $maxSizeDpy = R_MAX_UPLOAD_SIZE . 'MB';
 
   js('croppic');
-  js('crop-setup', 'recrop uid maxSize', $recrop, $mya->id, R_MAX_UPLOAD_SIZE);
+  js('crop-setup', 'recrop uid', $recrop, $mya->id);
   css('x/croppic.css');
 
   $form = compact(ray('title nextStep progress desc newPhoto del'));

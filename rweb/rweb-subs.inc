@@ -319,6 +319,21 @@ function goFar($url, $params = '') {
   return w\go(BASE_URL . '/rcredits/relay.php?goto=' . $url);
 }
 
+/**
+ * Process an uploaded file, returning the filename (or returning FALSE and setting an error message).
+ */
+function uploadFile(&$err = '') {
+  if (!@$_FILES['files']['name']['file']) return !$err = t('upload required');
+  $file = new \stdClass();
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
+  if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
+    if (!in($filetype, 'text/csv text/plain')) return !$err = t('bad file type', compact('filetype'));
+  }
+  if ($file->size > MAX_UPLOAD_SIZE) return !$err = t('That file is too big.');
+	if (!$file->size) return !$err = t('That file is empty.');
+	return $file->tmp_name;
+}
+
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
 function htmlText($name, $id, $value, $class, $other = []) {

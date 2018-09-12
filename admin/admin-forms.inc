@@ -57,6 +57,7 @@ EOF;
     } */
     $do1099btest = submi(t('1099B TEST'));
     $do1099b = submi('1099B');
+		$reconcile = submi('Reconcile Ctty Fund');
     $tables .= ' notices boxes do stats usd nonmembers';
     $special = submi(t('Special'));
     $askForAppData = submi(t('Ask for App Data'));
@@ -78,7 +79,7 @@ EOF;
   }
 
   foreach (ray($tables) as $one) $do[$one] = submi($one);
-  $do += compact(ray('inviteeStatus organizerList signupCos do1099btest do1099b special stop start stopCtty startCtty'));
+  $do += compact(ray('inviteeStatus organizerList signupCos do1099btest do1099b reconcile special stop start stopCtty startCtty'));
   $do = fieldSet('do', $do);
   
   $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure resetSSN askForAppData seeAppData')));
@@ -145,6 +146,8 @@ function formAdminPanel_submit($form, &$sta) {
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../cg-yearly.inc';
     r\Special\do1099bs(@$test1099);
+	} elseif ($op == 'reconcile') {
+		w\go('sadmin/reconcile-ctty-fund');
   } elseif ($op == 'inviteeStatus') {
     return w\go('community/invite/invited-whom');
   } elseif ($op == 'organizerList') {

@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.42b'); // software version
+define('R_VERSION', '3.42c'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -131,10 +131,9 @@ define('DEPOSIT_SQL', '(amount>0 XOR txid<0)'); // SQL fragment for "transfer is
 define('CANONIC_ACCTS', 3); // number of canonic accounts (admin, placeholders,...)
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
-define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
-define('R_MAX_PHOTO_WIDTH', 1024);
-define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as they look
-define('R_MAX_UPLOAD_SIZE', 4); // maximum upload size in MB
+define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as individual photos
+define('MAX_UPLOAD_SIZE', 4 * 1024000); // maximum upload size in bytes
+
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_EXCHANGE_LIMITS', '1:5000,7:20000,49:80000,365:500000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
@@ -387,7 +386,7 @@ define('K_CTTY_THRESHOLD', 100); // minimum size of community transactions to co
 // a weight of "X" means the risk is named but does not contribute to the total risk score
 define('K_ACCT_RISKS', 'adminOk:-0.3,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:5,moves:3,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,dobOff:4,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
 define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssnOff dobOff fishy');
-define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
+define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2,manualReconcile:3'); // names and size of transaction risks
 define('K_ADMINOK', 0); // community admin blessed the account or transaction
 define('K_HASBANK', 3); // account has a connected bank account
 define('HAS_BANK', 'risks&(1<<' . K_HASBANK . ')'); // mysql criterion (not surrounding parens, so we can do u.:HAS_BANK)
