@@ -49,7 +49,7 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
 }
 
 /**
- * Save a record in the given table returning the record ID of the inserted record.
+ * Save a record in the given table *that has no AUTO_INCREMENT* returning the record ID of the inserted record.
  * @param string $table: table to save in (anything but users or r_relations)
  * @param string $idField: name of record ID field (uid or reid)
  * @param assoc  $record: the record to save (possibly with record ID already chosen)

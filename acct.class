@@ -222,12 +222,15 @@ class Acct {
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
     if ($field == 'changes') {
-        $records = db\records('*', 'r_member_change', 'uid=:id', ['id' => $a->id]);
-        foreach ($records as $record) {
-            $record->old_value = u\decry('S', $record->old_value);
+      $rows = db\records('*', 'r_changes', 'uid=:id', ['id' => $a->id]);
+      foreach ($rows as $i => $row) {
+			  foreach (ray('oldValue newValue') as $k) if (u\crypted('S', $row->$k)) $rows[$i]->$k = u\decry('S', $row->$k);
+		  }
+			return $rows;
+/*          $record->old_value = u\decry('S', $record->old_value);
             $record->new_value = u\decry('S', $record->new_value);
         }
-        return $records;
+        return $records; */
     }
     if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
@@ -280,7 +283,7 @@ class Acct {
    * @return <at least one of $fields is in the $specialType list>
    */
   private function special($fields, $specialType) {
-    $specials = constant("R_{$specialType}_FIELDS");
+    $specials = constant("{$specialType}_FIELDS");
     return is_array($fields) ? (bool) array_intersect($fields, ray($specials))
     : (strpos($fields, ' ') === FALSE ? u\inList($fields, $specials) // be efficient, if just one field
     : (bool) array_intersect(ray($fields), ray($specials)));
@@ -511,7 +514,8 @@ class Acct {
     foreach (just(REL_FIELDS . ' ' . REL_FLAGS, $info) as $k => $v) {$a->setRel($k, $v); unset($info[$k]);}
     if ($coFlds = just(CO_FIELDS, $info)) {$a->setCo($coFlds); $info = justNOT(CO_FIELDS, $info);}
 
-    if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+//    if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+    if ($a->activated) $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is (or was) active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
     if (isset($info['photo'])) {
@@ -528,7 +532,7 @@ class Acct {
     foreach (ray('data secure vsecure') as $special) {
       if (isset($info[$special])) {
         $sFlds = $info[$special]; // can be '' for no data
-      } elseif ($sFlds = just(constant('R_' . strtoupper($special) . '_FIELDS'), $info)) {
+      } elseif ($sFlds = just(constant(strtoupper($special) . '_FIELDS'), $info)) {
         $sFlds += $a->$special;
       } else continue;
       if ($special == 'vsecure' and $a->activated and $sFlds) foreach ($sFlds as $k => $v) {
@@ -541,41 +545,40 @@ class Acct {
 /*    
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
-    } elseif ($data = just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
+    } elseif ($data = just(DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
 
-    if (($set = isset($info['secure'])) or $sFlds = just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
+    if (($set = isset($info['secure'])) or $sFlds = just(SECURE_FIELDS, $info)) { // serialize and encrypt
 //  			if ($v = @$sFlds['ssnData']) $sFlds['ssnData'] = serialize($v);
       $sec = $set ? ($info['secure'] ?: []) : ($sFlds + ($a->secure ?: []));
       $info['secure'] = u\cry('S', serialize($sec));
     }
 
-    if (($set = isset($info['vsecure'])) or $sFlds = just(R_VSECURE_FIELDS, $info)) { // serialize and encrypt
+    if (($set = isset($info['vsecure'])) or $sFlds = just(VSECURE_FIELDS, $info)) { // serialize and encrypt
       $vsec = $set ? ($info['vsecure'] ?: []) : ($sFlds + ($a->vsecure ?: []));
 			if ($a->activated) foreach ($sFlds as $k => $v) $vsec[$k] = u\cry('V', $v); // hyper-encrypt when activated 
       $info['vsecure'] = u\cry('S', serialize($vsec));
     }
 	*/	
 
-    $info = justNOT(R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
+    $info = justNOT(SECURE_FIELDS . ' ' . VSECURE_FIELDS . ' email ' . DATA_FIELDS, $info); // don't pass these
     return $info ? db\update('users', $info + ['uid' => $a->id], 'uid') : TRUE;
   }
 
   /**
    * Record memorable changes being made to an account record.
    * @param assoc $info: all changes being made
-   * @return the changes
    */
   private function recordChanges($info) {
     $a = $this;
     $newChanges = justNOT(R_HIDE_CHANGES, $info); // see if there are any changes to remember
-    foreach ($newChanges as $k => $v) { // don't record if no change
-      $ak = $a->$k;
-      if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) {
-        unset($newChanges[$k]);
-      } // else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
-    }
+    foreach ($newChanges as $field => $v) {
+      $ak = $a->$field;
+      if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) continue; // don't record if no change
+//        unset($newChanges[$k]);
+//      } // else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
+//    }
     
-    if (!$newChanges) return [];
+//    if (!$newChanges) return [];
   
 //     $changes = $a->changes; // must precede ->rawChanges
 // //    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
@@ -585,23 +588,24 @@ class Acct {
 //       $changes[$time] += $newChanges;
 //     } else u\preray([$time => $newChanges], $changes); // put the new changes first
 //     $changes = serialize($changes);
-// //    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) 
+// //    if ($encrypted or just(SECURE_FIELDS, $newChanges)) 
 // 		$changes = u\cry('S', $changes);
+      list ($oldValue, $newValue) = ['' . $a->$field, '' . $v];
+			if (in($field, SECURE_FIELDS . ' ' . VSECURE_FIELDS . ' phone email mail')) foreach (ray('oldValue newValue') as $k) $$k = u\cry('S', $$k);
+			$record = ray('uid created field oldValue newValue changedBy', $a->uid, time(), $field, $oldValue, $newValue, $a->agentId);
 
     
-    foreach ($newChanges as $k => $v) {  // add a r_member_change record for each changed field
-        $record_id = u\firstUnusedId('record_id', 'r_member_change');
-        $record = [ 'record_id' => $record_id,
-                    'uid' => $a->uid,
-                    'timestamp' => r\rTime(),
-                    'field' => $k,
-                    'old_value' => u\cry('S', '' . ($a->$k)),
-                    'new_value' => u\cry('S', '' . $v),
-                    'who_made_change' => $a->agentId ];
-        r\insert('r_member_change', 'record_id', $record);
+//    foreach ($newChanges as $k => $v) {  // add a r_changes record for each changed field
+/*      $record = [ 'uid' => $a->uid,
+                  'created' => r\rTime(),
+                  'field' => $k,
+                  'oldValue' => u\cry('S', '' . $a->$k),
+                  'newValue' => u\cry('S', '' . $v),
+                  'changedBy' => $a->agentId ]; */
+      db\insert('r_changes', $record); // add a r_changes record for each changed field
     }
     
-    return compact('changes');
+//    return compact('changes');
   }
   
 //  public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}

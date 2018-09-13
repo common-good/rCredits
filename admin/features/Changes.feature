@@ -9,11 +9,11 @@ SO I can request changes to software, that will enhance the experience of rCredi
 
 Setup:
   Given members:
-  | id   | fullName | address | city | state | flags    | minimum | achMin | saveWeekly | crumbs |*
-  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,ided  |     100 |     10 |          0 |   0.02 |
-  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,debt  |     200 |     20 |          0 |   0.05 |
-  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co    |     300 |     30 |          0 |   0.05 |
-  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin |     400 |     40 |          0 |   0.05 |
+  | id   | fullName | address | city | state | flags    | minimum | achMin | saveWeekly | crumbs | activated |*
+  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,ided  |     100 |     10 |          0 |   0.02 | %today-2y |
+  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,debt  |     200 |     20 |          0 |   0.05 | %today-2y |
+  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co    |     300 |     30 |          0 |   0.05 | %today-2y |
+  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin |     400 |     40 |          0 |   0.05 | %today-2y |
 
 Scenario: A member changes some settings
   Given member ".ZZA" completes form "settings/preferences" with values:

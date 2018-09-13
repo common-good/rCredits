@@ -241,15 +241,15 @@ function formSeeChanges($form, &$sta, $qid = '') {
   $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Changed by</th></tr>';
   // $rec = []; // track historical field values
 
-  $sql = 'SELECT timestamp, field, old_value, new_value, who_made_change, changer.name AS changer_name FROM r_member_change, users AS changer WHERE r_member_change.uid = :qid AND who_made_change = changer.uid ORDER BY timestamp';
-  $q = db\q($sql, ray('qid', $a->uid));
+  $sql = 'SELECT h.created, field, oldValue, newValue, changedBy, u.name AS changerName FROM r_changes h LEFT JOIN users u ON h.changedBy=u.uid WHERE h.uid=:id ORDER BY created';
+  $q = db\q($sql, ray('id', $a->id));
   while ($row = $q->fetchAssoc()) {
     extract($row);
-    $date = u\fmtDate($timestamp);
-    $old = a\formatField($field, interpretS($old_value));
-    $new = a\formatField($field, interpretS($new_value));
-    $changed_by = $changer_name ?: "($who_made_change)";
-    $list[] = "<tr><td>$date</td><td>$field</td><td>$old</td><td>$new</td><td>$changed_by</td></tr>";
+    $date = u\fmtDate($created);
+    $old = a\formatField($field, interpretS($oldValue));
+    $new = a\formatField($field, interpretS($newValue));
+    $changedBy = $changerName ?: "($changedBy)";
+    $list[] = "<tr><td>$date</td><td>$field</td><td>$old</td><td>$new</td><td>$changedBy</td></tr>";
 //     $date = u\fmtDate($a->ok ? $access : $login);
 //     $nameClass = $a->co ? 'name co' : 'name';
 //     $notes = str_replace("\n", "<br>\n", $a->notes);
@@ -291,7 +291,7 @@ function formSeeChanges($form, &$sta, $qid = '') {
 //       $date = u\fmtDate($dt);
 //       foreach ($info as $k => $v) {
 //         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
-// ///        if (is_array($v)) $v = print_r($v, 1);
+/////        if (is_array($v)) $v = print_r($v, 1);
 // //        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
 //         $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
 //         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";

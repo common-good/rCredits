@@ -98,15 +98,17 @@ function tableDefs($schema = []) {
   $indexes = index('name') + index('mail') + index('created') + index('community') + index('zip');
   $schema['users'] = dbTable(t('Account data'), $fields, 'uid', $foreignKeys, $indexes);
 // kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
+
+  // table r_changes
   $fields = array (
-      'record_id' => dbFld(t('change record ID'), 'int big'),
+      'id' => dbFld(t('change record ID'), 'serial big'),
       'uid' => dbFld(t('id of user record to which this change applies'), 'int big'),
-      'timestamp' => dbFld(t('Unix date and time that change was made'), 'int 11'),
+      'created' => dbFld(t('Unix date and time that change was made'), 'int 11'),
       'field' => dbFld(t('name of the field that was changed'), 'varchar 40'),
-      'old_value' => dbFld(t('serialized old value, possibly encrypted'), 'blob'),
-      'new_value' => dbFld(t('serialized new value, possibly encrypted'), 'blob'),
-      'who_made_change' => dbFld(t('uid of user who made the change'), 'int big') );
-  $schema['r_member_change'] = dbTable(t('Member record changes'), $fields, 'record_id');
+      'oldValue' => dbFld(t('serialized old value, possibly encrypted'), 'blob'),
+      'newValue' => dbFld(t('serialized new value, possibly encrypted'), 'blob'),
+      'changedBy' => dbFld(t('uid of user who made the change'), 'int big') );
+  $schema['r_changes'] = dbTable(t('Member record changes'), $fields, 'id');
   
   // table sessions (additions to Drupal standard)
   $fields = array( // additional/changed sessions fields
@@ -798,23 +800,26 @@ function tableDefs($schema = []) {
   
   */
 
-//   foreach (ray(TRACK_DELETED) as $table) {
-//     $xtable = $table == 'users' ? 'x_users' : str_replace('r_', 'x_', $table);
-//     $schema[$xtable] = $schema[$table];
-// /*    $fields = $schema[$xtable]['fields'];
-//     if ($key = @$schema[$xtable]['primary key']) {
-//       if ($fields[$key]['type'] == 'serial') $schema[$xtable]['fields'][$key]['type'] = 'int'; // permits dropping primary key
-//     } */
-//     foreach ($schema[$xtable]['fields'] as $field => $spec) {
-//         $schema[$xtable]['fields'][$field] = str_replace('NOT NULL', '', $spec);
-//     }
-//     $deleted = dbFld(t('Unixtime record was deleted'), 'int 11', 0);
-//     u\preray(compact('deleted'), $schema[$xtable]['fields']);
-//     $schema[$xtable]['primary key'][] = 'deleted'; // allow duplicate keys in deletions tables
-//   }
+  foreach (ray(TRACK_DELETED) as $table) {
+		$xtable = $table == 'users' ? 'x_users' : str_replace('r_', 'x_', $table);
+		$schema[$xtable] = $schema[$table];
+	/*    $fields = $schema[$xtable]['fields'];
+		if ($key = @$schema[$xtable]['primary key']) {
+			if ($fields[$key]['type'] == 'serial') $schema[$xtable]['fields'][$key]['type'] = 'int'; // permits dropping primary key
+		} 
+		foreach ($schema[$xtable]['fields'] as $field => $spec) {
+			$schema[$xtable]['fields'][$field]['type'] = str_replace('serial', 'int', $spec['type']);
+		}*/
+		//fixXKey($schema[$xtable]['fields']);
+		$deleted = dbFld(t('Unixtime record was deleted'), 'int 11', 0);
+		u\preray(compact('deleted'), $schema[$xtable]['fields']);
+		$schema[$xtable]['primary key'][] = 'deleted'; // allow duplicate keys in deletions tables
+  }
 
   return (object) $schema;
 }
+
+//function fixXKey(&$fields) {if ($k = reset($fields)) $fields[$k] = str_replace('serial', 'int', $fields[$k]);}
 
 /**
  * Make Fields

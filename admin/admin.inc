@@ -652,8 +652,8 @@ function moveFieldsToHidden() {
     foreach ($dataFields as $k) $$k = @$data[$k];
     foreach ($secureFields as $k) $$k = @$secure[$k];
     $data = $secure = [];
-    foreach (ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
-    foreach (ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
+    foreach (ray(DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
+    foreach (ray(SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
 ///    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
     $a->update(compact($dataFields, $secureFields, 'data', 'secure'));
   }
@@ -666,7 +666,7 @@ function moveFieldsToHidden() {
 function secureVery($a = '') {
   if (!r\acct()->superAdmin) return; // don't bother if not admin
   if ($a) {
-    if ($vflds = just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
+    if ($vflds = just(VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
   } else {
     $q = db\q('SELECT uid FROM users WHERE :IS_OK');
     while ($row = $q->fetchAssoc()) secureVery(r\acct($row['uid']));

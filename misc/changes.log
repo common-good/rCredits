@@ -1,3 +1,7 @@
+2018-09-13 v3.42c
+. now uses a change table (made some changes to JR's code, for consistency etc.)
+. partial community fund reconciliation feature
+
 2018-09-06
 . fixed bug that left outgoing transfer requests uncompleted
 . fixed bug that created more than one bank verification request sometimes
