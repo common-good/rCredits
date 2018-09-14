@@ -28,11 +28,10 @@ function tableDefs($schema = []) {
   
   // table users
   $fields = array(
-    // standard Drupal fields
     'uid' => dbFld(t('account record ID'), 'int big'),
     'name' => dbFld(t('unique user name'), 'varchar 60', ''),
     'pass' => dbFld(t('account password'), 'varchar 128', ''),
-    'mail' => dbFld(t('encrypted email address'), 'varchar 254', ''),
+    'email' => dbFld(t('email address'), 'varchar 254', ''), // encrypted/searchable
     'created' => dbFld(t('Unix date and time record was created'), 'int 11', 0),
     'access' => dbFld(t('Unix date and time account was last accessed'), 'int 11', 0),
     'login' => dbFld(t('Unix date and time user last signed in'), 'int 11', 0),
@@ -51,7 +50,7 @@ function tableDefs($schema = []) {
 
 //    'offsite' => dbFld(t('index to encrypted data stored off-site'), 'int big', NULL, TRUE),
     'fullName' => dbFld(t('full name of the individual or entity'), 'varchar 255'),
-    'phone' => dbFld(t('contact phone (no country code, no punctuation)'), 'varchar 255'), // encrypt/searchable
+    'phone' => dbFld(t('contact phone (no country code, no punctuation)'), 'varchar 255'), // encrypted/searchable
 //    'faxetc' => dbFld(t('other contact details'), 'varchar 255'),
 //    'address' => dbFld(t('physical street address'), 'varchar 60'),
     'city' => dbFld(t('municipality'), 'varchar 60'),

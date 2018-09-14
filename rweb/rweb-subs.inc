@@ -566,7 +566,7 @@ function showRecords($ray, $formatFunc = 'CG\\Web\\formatField', $flagsField = B
 function formatField($k, $v) {
   $v = $v . ''; // convert to string
 //  if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
-//  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+//  if ($v and in_array($k, ray(R_DATE_FLDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
 
   if (u\crypted('P', $v)) $v = u\decry('P', $v); // decrypt phone and email
   if ($k == 'phone') $v = u\fmtPhone($v);
@@ -1336,8 +1336,8 @@ function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
  */
 function emailDup($email0, $uid, $suppressErr = FALSE) {
   global $base_url;
-  $mail = u\cry('P', $email0);
-  if (!$who = db\get('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
+  $email = u\cry('P', $email0);
+  if (!$who = db\get('fullName', 'users', 'email=:email and uid<>:uid AND NOT :IS_CO', compact('email', 'uid'))) return FALSE;
   if (!$suppressErr) {
     $_a = atag("/settings/password/$email0");
     $emailTagged = str_replace('@', '+whatever@', $email0);

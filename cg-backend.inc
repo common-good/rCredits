@@ -585,7 +585,7 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   } else $cphone = '-';
   
   if (!$short = u\shortName(" $who ", '%')) $short = '-'; // abbreviations must not be null or zeroes
-  $cmail = strpos($who, '@') ? u\cry('P', $who) : '-';
+  $cmail = strpos($who, '@') ? u\cry('P', strtolower($who)) : '-';
 
   $cttyCrit = $mya->admin 
   ? '1' 
@@ -594,7 +594,7 @@ function identify($who, $myid, $paying, $self_message = 'no self-trading') {
   $sql = <<<EOF
     SELECT DISTINCT uid,fullName
     FROM users 
-    WHERE (name LIKE :short OR :who=fullName OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=mail)))
+    WHERE (name LIKE :short OR :who=fullName OR (!:IS_NOSEARCH AND (:cphone=phone OR :cmail=email)))
     AND $cttyCrit
     ORDER BY fullName
 EOF;

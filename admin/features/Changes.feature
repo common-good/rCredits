@@ -32,5 +32,6 @@ Scenario: A member changes some settings
   | %dmy | crumbs      |                 0.02 |                        0.01 | abeone     |
   | %dmy | flags       | ok ided weekly paper | ok ided refill weekly paper | abeone     |
   | %dmy | achMin      |                   10 |                          11 | abeone     |
-  | %dmy | bankAccount |                      | USkk211870281123            | abeone     |
+  | %dmy | bankAccount |                      | (secret)                    | abeone     |
+#  | %dmy | bankAccount |                      | USkk211870281123            | abeone     | (this will work with member "D:1" when decry('V') works)
 #  | %dmy | flags   | member ok bona | member ok bona weekly debt |

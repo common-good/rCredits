@@ -34,7 +34,7 @@ function acctRisk1($uid, &$risk = 0, &$calc = 0) {
   setRisk('rents', $a);
   
   $trusted = $a->trust - 1; // how well trusted (trust is always >=1)
-  $inviteTrust = db\get('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', ray('id email', $a->id, $a->mail)); // trustedness of accounts that invited this one
+  $inviteTrust = db\get('SUM(trust - 1)', 'users u INNER JOIN r_invites i ON i.inviter=u.uid', 'i.invitee=:id OR i.email=:email', ray('id email', $a->id, u\cry('P', $a->email))); // trustedness of accounts that invited this one
   $trusted += $inviteTrust; // invited by trusted people
   $relations = db\count('r_relations r LEFT JOIN users u ON u.uid=r.main', 'r.permission>0 AND NOT r.:IS_OWNER AND r.other=:id AND u.risk<:K_GREEN', $idSub);
   $trusted += $relations; // access to (trusted by) non-suspect businesses

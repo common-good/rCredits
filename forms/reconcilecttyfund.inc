@@ -6,7 +6,7 @@ use CG\Backend as be;
 use CG\Util as u;
 use CG\Db as db;
 
-define('OFX_TX_FIELDS', 'trnType dtPosted trnAmt fitId name memo');
+define('OFX_TX_FLDS', 'trnType dtPosted trnAmt fitId name memo');
 
 /**
  * Upload a bank statement to reconcile the community fund.
@@ -26,7 +26,7 @@ function formReconcileCttyFund_validate($form, &$sta) {
 
 	if (!$acct = ofxData('bankId acctId', $s)) return w\say(t('That is not a valid OFX file.'));
 	if (!$dts = ofxData('dtStart dtEnd', $s)) return w\say(t('That is not a valid OFX file.'));
-  if (!$txs = ofxData(OFX_TX_FIELDS, $s, TRUE)) return w\say(t('No transactions found.'));
+  if (!$txs = ofxData(OFX_TX_FLDS, $s, TRUE)) return w\say(t('No transactions found.'));
   $sta['input'] += $acct + $dts + ['txs' => serialize($txs)];
 }
 
@@ -34,7 +34,7 @@ function formReconcileCttyFund_submit($form, &$sta) {
   global $mya;
 
 	extract(just('bankId acctId dtStart dtEnd txs', $sta['input']));
-	$txKs = ray(OFX_TX_FIELDS);
+	$txKs = ray(OFX_TX_FLDS);
 	$sql = 'SELECT IF(amount<0,-deposit,deposit) AS dt,SUM(amount) AS amt FROM r_usd where amount<>0 and deposit<>0 GROUP BY deposit,amount<0';
 	$res = db\q($sql)->fetchAllKeyed();
 	debug($res);

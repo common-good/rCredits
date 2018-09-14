@@ -120,6 +120,12 @@ if (count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', 
 $agt = $_SERVER['HTTP_USER_AGENT'];
 define('isSAFARI', stripos($agt, 'Chrome') === FALSE and stripos($agt, 'Safari') !== FALSE);
 
+// one-time database changes, if any
+$sqlOnce = <<< X
+	ALTER TABLE `users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
+	ALTER TABLE `x_users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
+X;
+
 /**
  * Remove any (potentially hazardous) HTML from input.
  * Specifically, remove <, followed by ! or any letter, through the closing > or end of string.

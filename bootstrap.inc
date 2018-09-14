@@ -2122,6 +2122,11 @@ function drupal_bootstrap() {
   require_once DRUPAL_ROOT . '/includes/common.inc';
   _drupal_bootstrap_full();
 
+	if (@$sqlOnce and \variable_get('version', '') != R_VERSION) {
+		\db_query($sqlOnce); // make database changes for this update, if any
+		\variable_set('version', R_VERSION);
+	}		
+
   return DRUPAL_BOOTSTRAP_FULL;
 }
 

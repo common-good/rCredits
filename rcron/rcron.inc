@@ -229,9 +229,9 @@ function tickle() {
   $delays = '8';
   $elapsed = str_replace('@DATE', 'invited', $timeSince);
   $sql = <<< X
-    SELECT email, inviter, code, $elapsed AS elapsed FROM r_invites i
+    SELECT i.email, i.inviter, i.code, $elapsed AS elapsed FROM r_invites i
     LEFT JOIN users u ON u.uid=i.inviter
-    WHERE $elapsed IN ($delays) AND invitee=0 AND u.:IS_OK
+    WHERE $elapsed IN ($delays) AND i.invitee=0 AND u.:IS_OK
 X;
 
   queueEach('tickleSignup', $sql);

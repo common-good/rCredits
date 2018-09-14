@@ -1,3 +1,8 @@
+2018-09-14 v3.42d
+. changed mail field to "email"
+. refactored some things in acct.class
+. changes are now encrypted as S, V, or P, as appropriate
+
 2018-09-13 v3.42c
 . now uses a change table (made some changes to JR's code, for consistency etc.)
 . partial community fund reconciliation feature
@@ -83,7 +88,7 @@
 /**/      debug($fullName . ': ' . (r\acceptGift($info) ? 'accepted NOW' : 'later'));
 		}
 	}
-	echo $s;
+/**/	echo $s;
 . 
 
 2018-08-03
@@ -121,8 +126,8 @@
   eachA(function ($a) {
     if (db\exists('r_company', 'uid=' . $a->id)) return;
     $data = $a->data;
-    $info = just(CO_FIELDS, $data);
-    $data = justNOT(CO_FIELDS, $data);
+    $info = just(CO_FLDS, $data);
+    $data = justNOT(CO_FLDS, $data);
     $coFlags = $info['coFlags'];
     foreach (ray('1:1,2:2,3:4,4:6,8:5') as $k=>$v) {
       if (u\getBit($coFlags, $k)) {
@@ -383,7 +388,7 @@ X;
 			foreach ($changes as $dt => $ch) {
 				if (is_array($ch)) foreach ($ch as $k => $v) {
 				  if (!strlen($v)) continue;
-				  if (in_array($k, ray(R_VSECURE_FIELDS))) {
+				  if (in_array($k, ray(R_VSECURE_FLDS))) {
 					  if (u\oldcrypted($v)) $v = u\decryptM($v, 0, $pw2);
             if (u\crypted('V', $v)) $v = u\decry('V', $v)						;
 					  if (!$v or !ctype_print($v)) {
@@ -416,7 +421,7 @@ X;
 			if ($v and !is_array($v)) $v = unserialize($v);
 			if ($v) $secure['ssnData'] = $v; else unset($secure['ssnData']);
 
-			foreach (ray(R_VSECURE_FIELDS) as $k) {
+			foreach (ray(R_VSECURE_FLDS) as $k) {
 				if (strlen($v = u\decryptM($secure[$k], 0, $pw2))) {
 				  $vsecure[$k] = $activated ? u\cry('V', $v) : $v;
 					unset($secure[$k]);
@@ -493,7 +498,7 @@ X;
       }
     }
     $secure0 = $secure = $a->secure;
-    foreach (ray(R_VSECURE_FIELDS) as $k) {
+    foreach (ray(R_VSECURE_FLDS) as $k) {
       if ($v = @$secure[$k]) {
 /**/    if (!@$a->$k) {
           if (FORREAL) $a->update($k, $v); 

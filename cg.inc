@@ -660,8 +660,8 @@ function uniqueName($fullName, $info = []) {
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
-  $mail = u\cry('P', strtolower($id));
-  return db\get('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
+  $email = u\cry('P', strtolower($id));
+  return db\get('uid', 'users', 'name=:id OR email=:email ORDER BY :IS_CO', compact('id', 'email'));
 }
   
 /**

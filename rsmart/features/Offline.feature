@@ -8,13 +8,13 @@ SO my company's online account records are not incorrect for long.
 
 Setup:
   Given members:
-  | id   | fullName   | email | cc  | cc2  | floor | flags                | *
-  | .ZZA | Abe One    | a@    | ccA | ccA2 |  -250 | ok,confirmed,debt    |
-  | .ZZB | Bea Two    | b@    | ccB | ccB2 |  -250 | ok,confirmed,debt    |
-  | .ZZC | Corner Pub | c@    | ccC |      |  -250 | ok,confirmed,co,debt |
-  | .ZZD | Dee Four   | d@    | ccD | ccD2 |     0 | ok,confirmed         |
-  | .ZZE | Eve Five   | e@    | ccE | ccE2 |     0 | ok,confirmed,secret  |
-  | .ZZF | Far Co     | f@    | ccF |      |     0 | ok,confirmed,co      |
+  | id   | fullName   | email | cc  | cc2  | floor | flags                | activated |*
+  | .ZZA | Abe One    | a@    | ccA | ccA2 |  -250 | ok,confirmed,debt    | %today-2y |
+  | .ZZB | Bea Two    | b@    | ccB | ccB2 |  -250 | ok,confirmed,debt    | %today-2y |
+  | .ZZC | Corner Pub | c@    | ccC |      |  -250 | ok,confirmed,co,debt | %today-2y |
+  | .ZZD | Dee Four   | d@    | ccD | ccD2 |     0 | ok,confirmed         | %today-2y |
+  | .ZZE | Eve Five   | e@    | ccE | ccE2 |     0 | ok,confirmed,secret  | %today-2y |
+  | .ZZF | Far Co     | f@    | ccF |      |     0 | ok,confirmed,co      | %today-2y |
   And devices:
   | id   | code |*
   | .ZZC | devC |
@@ -165,5 +165,6 @@ Scenario: Device sends correct old proof for legit tx after member loses card, w
   | id   | cardCode |*
   | .ZZB | ccB2     |
   // member reported lost card, we just changed cardCode, now the member (or someone) tries to use the card with app online:
-  When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now+1h" force 1
+	// (use +1d not +1h, because t\hitServer rounds down to nearest day)
+  When reconciling "C:A" on "devC" charging ".ZZB,ccB" $100 for "goods": "food" at "%now+1d" force 1
   Then we return error "bad proof"

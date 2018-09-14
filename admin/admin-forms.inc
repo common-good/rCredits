@@ -246,17 +246,17 @@ function formSeeChanges($form, &$sta, $qid = '') {
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $date = u\fmtDate($created);
-    $old = a\formatField($field, interpretS($oldValue));
-    $new = a\formatField($field, interpretS($newValue));
+		if ($field == 'bankAccount') debug(u\decry('V', $oldValue));
+		foreach (ray('oldValue newValue') as $k) $$k = a\formatField($field, ($type = u\crypted($$k)) ? decryChange($type, $$k) : $$k);
+//    $old = a\formatField($field, interpretS($oldValue));
+//    $new = a\formatField($field, interpretS($newValue));
     $changedBy = $changerName ?: "($changedBy)";
-    $list[] = "<tr><td>$date</td><td>$field</td><td>$old</td><td>$new</td><td>$changedBy</td></tr>";
+    $list[] = "<tr><td>$date</td><td>$field</td><td>$oldValue</td><td>$newValue</td><td>$changedBy</td></tr>";
 //     $date = u\fmtDate($a->ok ? $access : $login);
 //     $nameClass = $a->co ? 'name co' : 'name';
 //     $notes = str_replace("\n", "<br>\n", $a->notes);
 //     $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
-//     debug($uid);
 //     $a = r\acct($uid);
-//     debug($a->name);
 //     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
 //     $postalAddr = $a->postalAddr;
 //     $email = $a->email;
@@ -306,9 +306,9 @@ function formSeeChanges($form, &$sta, $qid = '') {
   return cgform(compact(ray('title list')));
 }
 
-function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
-
-function interpretS($v) {return u\crypted('S', $v . '') ? u\decry('S', $v) : $v;}
+function decryChange($type, $v) {return ($type == 'V' and !r\allKnowing()) ? t('(secret)') : u\decry($type, $v);}
+// function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
+// function interpretS($v) {return u\crypted('S', $v . '') ? u\decry('S', $v) : $v;}
 
 /**
  * Log back in to admin automatically.
