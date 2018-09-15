@@ -593,12 +593,12 @@ function cronRuns($op) {
   include_once __DIR__ . '/rcron/rcron.inc';
   
   $now = r\rTime();
-  \variable_set('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
+  \setV('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
 
   if ($op == 'ALL') { //  or strpos(R_DAILY_TASKS, " $op ")
 /**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     db\q('TRUNCATE queue');
-    \variable_set('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));
+    \setV('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));
   } elseif ($op) cr\doTask(compact('op'));
   cr\run();
   
@@ -1245,7 +1245,7 @@ function clear($ch = 0) {
 /**/ if (u\test() and !strpos($sceneTest->sceneName, 'Statement')) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 ///   file_put_contents(flog(), ''); // clear log file on disk
 
-  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_honors r_investments r_invites r_invoices r_changes r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_recurs r_request r_relations r_shares r_stats r_tous r_txs r_usd r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
+  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_honors r_investments r_invites r_invoices r_changes r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_recurs r_request r_relations r_shares r_stats r_tous r_txs r_usd r_usd2 r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 

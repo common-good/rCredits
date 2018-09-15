@@ -811,13 +811,15 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_ballots:proxy',
   // r_banks
     'r_boxes:uid:D',
+		'r_changes:uid:D',
+		'r_changes:changedBy',
 		'r_company:uid:D',
   // r_countries
     'r_coupated:uid',
     'r_coupons:fromId',
     'r_do:uid:D',
     'r_events:ctty',
-//    'r_gifts:uid:D',
+    'r_gifts:uid:D',
     'r_honors:uid:D', // honors are deletable if donation never completed
   // r_industries
     'r_investments:coid',
@@ -857,6 +859,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_txs:payerAgent',
     'r_txs:payeeAgent',
     'r_usd:payee',
+  // r_usd2
     'r_user_industries:uid:D',
   // r_votes
     'sessions:uid:D',
@@ -955,7 +958,7 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
 //  $savings = u\fmtAmt($a->rewards);
   $creditLine = u\fmtAmt(-$a->floor);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->rewards), $a->cttyA->email);
-  $companies = \variable_get('companies');
+  $companies = getV('companies');
   $companies = $companies[u\test() ? r\serverUid() : (int) $a->community];
   return compact(ray('messages unit range yestertime balance creditLine return ourEmail companies'));
 }
@@ -1427,9 +1430,9 @@ function promoLink($page = '') {
  * @return TRUE if the system is up
  */
 function up($up = NULL) {
-  if (is_null($up)) return \variable_get('up', TRUE);
+  if (is_null($up)) return getV('up', TRUE);
   u\log('System is ' . ($up ? 'UP' : 'DOWN'));
-  return \variable_set('up', $up);
+  return setV('up', $up);
 }
 
 /**
@@ -1526,9 +1529,9 @@ function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}
 function isReward($type) {return in($type, TX_REWARDS);}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
-function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : NULL;}
+function regionField($fld) {return ($a = r\acct(serverUid())) ? $a->$fld : NULL;}
 function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}
 function cttyList() {return db\q("SELECT uid,fullname FROM users WHERE uid<0 ORDER BY created,fullName")->fetchAllKeyed();}
-function allKnowing() {global $mya; return (bool) $mya->agentA->vKeyPw;}
+function allKnowing() {global $mya; return ($mya->superAdmin and $mya->agentA->vKeyPw);}
 function clubid() {return r\serverUid();} // temporarily use the region as the club

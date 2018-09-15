@@ -40,8 +40,8 @@ function formHandleInvoice($form, &$sta, $args = '') {
     if ($a->hasBank) {
       $_warning = t('<p><b>IMPORTANT:</b> To avoid insufficient funds charges, be sure there are enough funds in your bank account to cover any transfer that may result from approving payment of this invoice (and future invoices, if you check the "Auto" box).</p>');
       if (!@$webpay) $always = boxFld('always', t('Auto:'), t('Pay all invoices from %who automatically.', $subs), 0);
-    } elseif ($a->balance <= 0) {
-      $_warning = t('You cannot approve this invoice until you have money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu to transfer funds from (or to) your bank account.');
+    } elseif ($a->avail() < $amount) {
+      $_warning = t('You cannot approve this invoice until you have enough money in your account. Sign in at %CG_DOMAIN and click "Bank" on the menu to transfer funds from (or to) your bank account.');
       $disabled = w\disabled();
     } else $_warning = '';
 

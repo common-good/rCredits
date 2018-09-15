@@ -71,7 +71,7 @@ function setupBasicAccounts() {
     $helper = 1; //$wws->id;
     $info += compact(ray('email phone address city state helper'));
     $cgf = new r\Acct($info);
-    \variable_set('cgf_uid', $cgf->id);
+    \setV('cgf_uid', $cgf->id);
     $cgf->update('emailCode website', '1495kJHm0h145PHh2345h', 'cg4.us');
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }

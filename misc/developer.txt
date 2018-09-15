@@ -44,7 +44,8 @@ B. Coding strategies and style:
 	- One statement per line, except in rare cases where it's clearer not to.
   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules. Eventually we expect to
     drop Drupal, so avoid unnecessary dependency and entanglement. If you do use a Drupal function, precede it with backslash (\).
-
+	- Make the structure of the logic apparent by using short variable names and following convention (for example, use $k for a key, $v for a value, $i for in iterator, $a for an account, ...)
+	
     - Mostly follow generally-accepted coding practices (For example, all of Eclipse's defaults.)
   - Exceptions: 
     . Indent two spaces instead of one tab.

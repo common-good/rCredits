@@ -41,7 +41,7 @@ function formReconcileCttyFund_submit($form, &$sta) {
 	
 	foreach ($txs = unserialize($txs) as $tx) {
 		extract(array_combine($txKs, $tx)); 
-		$btxid = bankTxId($fitId);
+		$bankTxId = bankTxId($fitId);
 		debug(compact($txKs)); break;
 	}
 	

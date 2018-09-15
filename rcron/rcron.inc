@@ -158,7 +158,7 @@ function periodic() {
 function everyHour() { // stuff to do every hour
 //  queueEach('acctHourly', "SELECT uid FROM users WHERE uid<>0");
   if (strftime('%H') + 0 == (R_DAILY_HOUR + 6) % 24) {
-    $lastDaily = \variable_get('last_daily_cron', 0);
+    $lastDaily = getV('last_daily_cron', 0);
     if (NOW - $lastDaily > DAY_SECS) r\tellAdmin('daily cron FAILED');
   }
   
@@ -186,7 +186,7 @@ function everyDay() {
 
   $cttys = db\q('SELECT uid AS ctty FROM users WHERE uid<0')->fetchCol();
   foreach ($cttys as $ctty) $companies[$ctty] = r\companies($ctty, TRUE);  
-  \variable_set('companies', @$companies ?: []);
+  \setV('companies', @$companies ?: []);
   
   $sql = <<< X
   SELECT u.uid, c.uid AS ctty, u.fullName AS person, c.fullName AS cttyName FROM users u LEFT JOIN users c ON u.zip RLIKE c.zip
@@ -389,9 +389,9 @@ function lessOften() {
 function often($period, $chosen) {
   if (!timeFor(r\rTime(), $period, $chosen)) return;
 
-  $lastCron = \variable_get('r_last_cron');
+  $lastCron = getV('r_last_cron');
   $lastCron[$period] = r\rTime();
-  \variable_set('r_last_cron', $lastCron); // remember that this periodic activity has been done
+  \setV('r_last_cron', $lastCron); // remember that this periodic activity has been done
   $function = 'CG\\Cron\\every' . ucwords($period);
   $topic = t('cron period', compact('period'));
   $time = strftime('%I:%M%P', r\rTime());
@@ -999,8 +999,8 @@ function notice($item) {
 function END() {
   global $mya; $mya = NULL; // don't tell Admin the last current member
   if (db\exists('queue')) r\tellAdmin('queue has dingleberries'); else db\q('TRUNCATE queue'); // reset serial field
-  \variable_set('last_daily_cron', NOW);
-  $lastCron = \variable_get('r_last_cron', []);
+  \setV('last_daily_cron', NOW);
+  $lastCron = getV('r_last_cron', []);
   $elapsed = NOW - @$lastCron['day'];
   $time = strftime('%I:%M%P');
   $msg = t('At %time, after %elapsed secs, daily cron ended successfully.', compact(ray('time elapsed')));

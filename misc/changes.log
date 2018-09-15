@@ -1,3 +1,23 @@
+2018-09-14 still v3.42d
+. changed changes field to changesX and automatically populates new r_changes table
+. added r_usd2 table for service charges and inter-account transfers (to help reconcile Community Fund bank account)
+. eachA(function ($a) {
+		$chs = $a->changesX;
+		if (!strlen($chs)) return;
+		if (db\exists('r_changes', ray('uid', $a->id))) return;
+		$chs = u\decry('S', $chs);
+/**/  if (!$chs = unserialize($chs)) {debug("$a->fullName: bad serial or encryption"); return;}
+		$rec = []; // track historical field values
+		foreach ($chs as $dt => $info) {
+			foreach ($info as $k => $v) {
+				$newValue = isset($rec[$k]) ? $rec[$k] : (in($k, VSECURE_FLDS) ? $a->vsecure[$k] : $a->$k);
+				$rec[$k] = $v;
+				$record = ray('uid created field oldValue newValue changedBy', $a->uid, $dt, $k, $v, $newValue, 0);
+				db\insert('r_changes', $record); // add a r_changes record for each changed field
+			}
+		}
+	});
+		
 2018-09-14 v3.42d
 . changed mail field to "email"
 . refactored some things in acct.class
@@ -1709,7 +1729,7 @@ function special2() {
   CG\changeUid(-8915, -26742000000001, FALSE);
   CG\changeUid(-8321, -25026000000001, FALSE);
   for ($i = 1; $i <= 10; $i++) CG\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
-  \variable_set('r_totals', []);
+  \setV('r_totals', []);
 
 2014-02-12
 . fix data (already done on production server):

@@ -1,5 +1,83 @@
 _____________________________________________
 
+/*          $record->old_value = u\decry('S', $record->old_value);
+            $record->new_value = u\decry('S', $record->new_value);
+        }
+        return $records; */
+_____________________________________________
+
+//    $old = a\formatField($field, interpretS($oldValue));
+//    $new = a\formatField($field, interpretS($newValue));
+//     $date = u\fmtDate($a->ok ? $access : $login);
+//     $nameClass = $a->co ? 'name co' : 'name';
+//     $notes = str_replace("\n", "<br>\n", $a->notes);
+//     $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
+//     $a = r\acct($uid);
+//     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
+//     $postalAddr = $a->postalAddr;
+//     $email = $a->email;
+//     $fullName = "<a href=\"$base_url/change-account/acct=$a->mainQid&page=summary\">$fullName</a>";
+//     $steps = a\showSteps($a);
+
+//     if ($cAdmin) {
+//       $bits = []; // zap previous value
+//       foreach (ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
+//       $bits = $bits ? ('<span class="memberlist-bits"> ' . join(' ', $bits) . "</span><br>\n") : '';
+//     } else $bits = '';
+    
+//     $one = "<tr><td colspan=4 class=\"memberlist-line2\">$date: $steps$bits$notes</td></tr>\n";
+//     $list .= <<<EOF
+// <tr>
+// <td class="$nameClass">$fullName</td>
+// <td><a href="mailto:$email" target="_blank">$email</a></td>
+// <td>$phone</td>
+// <td>$postalAddr</td>
+// </tr>
+// $one
+// EOF;
+//     $emails .= "$email, ";
+//   }
+//   $list .= "</table>\n";
+  
+//   $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
+
+//  return cgform(compact(ray('title list emails')), '', FALSE);
+//   if ($a->changes) {
+//     foreach ($a->changes as $dt => $info) {
+//       $date = u\fmtDate($dt);
+//       foreach ($info as $k => $v) {
+//         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
+/////        if (is_array($v)) $v = print_r($v, 1);
+// //        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
+//         $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
+//         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
+//       }
+//     }
+
+//   } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
+// function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
+// function interpretS($v) {return u\crypted('S', $v . '') ? u\decry('S', $v) : $v;}
+_____________________________________________
+
+//    'question' => dbFld(t('security question'), 'varchar 255'),
+//    'usdAccount' => dbFld(t('USD (Dwolla) account number (hex of encrypted)'), 'varchar 255'), // searchable
+//    'offsite' => dbFld(t('index to encrypted data stored off-site'), 'int big', NULL, TRUE),
+//    'faxetc' => dbFld(t('other contact details'), 'varchar 255'),
+//    'address' => dbFld(t('physical street address'), 'varchar 60'),
+//    'chunk' => dbFld(t('granularity of transfers from bank account'), 'numeric 11,2', R_BANK_CHUNK),
+//    'maximum' => dbFld(t('maximum balance (send excess to bank)'), 'numeric 11,2', -1), // -1 means no limit (unused)
+//    'r' => dbFld(t('balance, including rewards (cached)'), 'numeric 11,2', 0),
+//    'usd' => dbFld(t('balance in related USD account (probable)'), 'numeric 11,2', 0),
+//    'frozen' => dbFld(t('amount of rCredits currently unavailable until specific dates or indefinitely'), 'text medium'),
+//    'photo' => dbFld(t('member photo'), 'blob big'), // encrypted
+//    'members' => isGAME ? dbFld(t('number of members represented'), 'int medium', 1) : NULL,
+  // need foreign keys here
+//  $schema['users']['fields']['uid'] = dbFld(t('Unique user ID'), 'int big'); // not unsigned (must be first field)
+//  $schema['users']['fields']['data'] = dbFld(t('serialized array of miscellaneous data'), 'text big');
+//  $schema['users']['fields'] = $fields;
+
+_____________________________________________
+
 /**
  * Return a form field for sharing percentage.
  *//*

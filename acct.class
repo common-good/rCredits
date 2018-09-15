@@ -229,10 +229,6 @@ class Acct {
 			  foreach (ray('oldValue newValue') as $k) if ($type = u\crypted($row->$k)) $rows[$i]->$k = u\decry($type, $row->$k);
 		  }
 			return $rows;
-/*          $record->old_value = u\decry('S', $record->old_value);
-            $record->new_value = u\decry('S', $record->new_value);
-        }
-        return $records; */
     }
     if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
@@ -577,7 +573,7 @@ class Acct {
       $ak = $a->$field;
       if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) continue; // don't record if no change
 
-			$oldValue = $a->cryIf($field, '' . $a->$field);
+			$oldValue = $a->cryIf($field, '' . $a->$field, TRUE);
 			$newValue = $a->cryIf($field, '' . $v);
 			$record = ray('uid created field oldValue newValue changedBy', $a->uid, time(), $field, $oldValue, $newValue, $a->agentId);
       db\insert('r_changes', $record); // add a r_changes record for each changed field
@@ -615,11 +611,14 @@ class Acct {
 	/**
 	 * Encrypt if appropriate
 	 */
-	private function cryIf($k, $v) {
+	private function cryIf($k, $v, $old = FALSE) {
+		$a = $this;
 		foreach (ray('psecure vsecure secure') as $secure) {
 			list ($type, $flds) = [ucfirst($secure[0]), constant(strtoupper($secure) . '_FLDS')];
-///			print_r(compact(ray('k v type flds')));
-			if (in($k, $flds)) return u\cry($type, $v);
+			if (in($k, $flds)) {
+				if ($old and $type == 'V') $v = @$a->vsecure[$k]; // special case for possibly already-encrypted, inaccessible vsecure value
+				return u\crypted($type, $v) ? $v : u\cry($type, $v);
+			}
 		}
 		return $v;
 	}
@@ -1742,7 +1741,7 @@ X;
 		$a = $this;
     if (!$vKey = u\unfmtKey($vKey) and !$vKey = r\vKey()) return t('No private key given or available.');
 		$a->update('vKeyPw', $vKeyPw = openssl_random_pseudo_bytes(32));
-    if (isDEV) \variable_set('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
+    if (isDEV) \setV('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
 		$vKeyE = u\cry('R', $vKey, FALSE, $vKeyPw);
 ///		debug('pwLen=' . strlen($vKeyPw) . ' vkELen=' . strlen($vKeyE));
 //	  r\setCryptCook('vKeyE', $vKeyE); // NO! (admin should sign out after calling with $vKey arg, to test it)

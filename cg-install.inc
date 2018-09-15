@@ -43,16 +43,11 @@ function tableDefs($schema = []) {
     'jid' => dbFld(t('account ID of joined account (0 if none)'), 'int big', 0),
     'changes' => dbFld(t('changes made to the account'), 'blob big'),
     'community' => dbFld("uid of this account's Common Good Community", 'int big'),
-//    'question' => dbFld(t('security question'), 'varchar 255'),
-//    'usdAccount' => dbFld(t('USD (Dwolla) account number (hex of encrypted)'), 'varchar 255'), // searchable
     'secure' => dbFld(t('encrypted data'), 'blob medium'), 
     'vsecure' => dbFld(t('hyper-encrypted data'), 'blob'), 
 
-//    'offsite' => dbFld(t('index to encrypted data stored off-site'), 'int big', NULL, TRUE),
     'fullName' => dbFld(t('full name of the individual or entity'), 'varchar 255'),
     'phone' => dbFld(t('contact phone (no country code, no punctuation)'), 'varchar 255'), // encrypted/searchable
-//    'faxetc' => dbFld(t('other contact details'), 'varchar 255'),
-//    'address' => dbFld(t('physical street address'), 'varchar 60'),
     'city' => dbFld(t('municipality'), 'varchar 60'),
     'state' => dbFld(t('state/province index'), 'int 5'),
     'zip' => dbFld(t('postal code for physical address (no punctuation)'), 'varchar 255'),
@@ -69,34 +64,29 @@ function tableDefs($schema = []) {
     'saveWeekly' => dbFld(t('chosen amount to increase minimum (target balance) by, weekly'), 'numeric 11,2', 0),
     'floor' => dbFld(t('negative credit line'), 'numeric 11,2', R_FLOOR),
     'minimum' => dbFld(t('chosen target balance (for automatic refills)'), 'numeric 11,2', NULL), // NULL means preferences not set yet
-//    'chunk' => dbFld(t('granularity of transfers from bank account'), 'numeric 11,2', R_BANK_CHUNK),
-//    'maximum' => dbFld(t('maximum balance (send excess to bank)'), 'numeric 11,2', -1), // -1 means no limit (unused)
     'share' => dbFld(t('percentage of rebates/bonuses to donate to CG'), 'numeric 6,3', 0),
     'crumbs' => dbFld(t('percentage of each transaction to donate to CG (half to community)'), 'numeric 6,3', NULL),
     'balance' => dbFld(t('balance, not including rewards (cached)'), 'numeric 11,2', 0),
-//    'r' => dbFld(t('balance, including rewards (cached)'), 'numeric 11,2', 0),
-//    'usd' => dbFld(t('balance in related USD account (probable)'), 'numeric 11,2', 0),
     'rewards' => dbFld(t('total incentive rewards to date (cached)'), 'numeric 11,2', 0),
     'committed' => dbFld(t('amount committed (for donations to CGF)'), 'numeric 11,2', 0),
-//    'frozen' => dbFld(t('amount of rCredits currently unavailable until specific dates or indefinitely'), 'text medium'),
-//    'photo' => dbFld(t('member photo'), 'blob big'), // encrypted
     'risk' => dbFld(t('today\'s suspiciousness rating'), 'float medium', NULL), // NULL means never set yet
     'risks' => dbFld(t('list of risk factors'), 'int big', 0, TRUE),
     'trust' => dbFld(t('how much this person is trusted by others in the community'), 'float medium', NULL),
     'stats' => dbFld(t('account statistics'), 'text medium'),
     'notices' => dbFld(t('when to send what kind of notice'), 'text tiny'),
     'lastip' => dbFld(t('latest IP address used'), 'varchar 39'),
-//    'members' => isGAME ? dbFld(t('number of members represented'), 'int medium', 1) : NULL,
     'special' => dbFld(t('special transient data'), 'text big'),
   );
-  // need foreign keys here
-//  $schema['users']['fields']['uid'] = dbFld(t('Unique user ID'), 'int big'); // not unsigned (must be first field)
-//  $schema['users']['fields']['data'] = dbFld(t('serialized array of miscellaneous data'), 'text big');
-//  $schema['users']['fields'] = $fields;
+
   $foreignKeys = foreignKey('community');
   $indexes = index('name') + index('mail') + index('created') + index('community') + index('zip');
   $schema['users'] = dbTable(t('Account data'), $fields, 'uid', $foreignKeys, $indexes);
-// kills Drupal: $schema['users']['fields']['data']['description'] = 'incidental data (a serialized array of name value pairs)';
+
+  // table sessions (additions to Drupal standard)
+  $fields = array( // additional/changed sessions fields
+    'acct' => dbFld(t('currently viewing/managing this account ID'), 'int big'),
+  );
+  $schema['sessions']['fields'] = (@$schema['sessions']['fields'] ?: []) + $fields;
 
   // table r_changes
   $fields = array (
@@ -107,14 +97,10 @@ function tableDefs($schema = []) {
       'oldValue' => dbFld(t('serialized old value, possibly encrypted'), 'blob'),
       'newValue' => dbFld(t('serialized new value, possibly encrypted'), 'blob'),
       'changedBy' => dbFld(t('uid of user who made the change'), 'int big') );
-  $schema['r_changes'] = dbTable(t('Member record changes'), $fields, 'id');
-  
-  // table sessions (additions to Drupal standard)
-  $fields = array( // additional/changed sessions fields
-    'acct' => dbFld(t('currently viewing/managing this account ID'), 'int big'),
-  );
-  $schema['sessions']['fields'] = (@$schema['sessions']['fields'] ?: []) + $fields;
-
+  $foreignKeys = foreignKey('uid') + foreignKey('changedBy');
+  $indexes = index('uid');
+  $schema['r_changes'] = dbTable(t('Member record changes'), $fields, 'id', $foreignKeys, $indexes);
+  	
   // table r_photos (separate from user table for efficiency -- this table gets big)
   $fields = array(
     'uid' => dbFld(t('account record id'), 'int big'),
@@ -311,13 +297,25 @@ function tableDefs($schema = []) {
     'bankAccount' => dbFld(t('Bank account for the transfer'), 'blob'), // "blob tiny" does not exist
     'risk' => dbFld(t('suspiciousness rating'), 'float medium', NULL), // NULL means never set yet
     'risks' => dbFld(t('list of risk factors'), 'int big', 0, TRUE),
-		'reconciled' => dbFld(t('bank transaction ID'), 'int big', TRUE),
+		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', TRUE),
     'channel' => dbFld(t('through what medium was the transaction entered'), 'int tiny'),
 //    'members' => isGAME ? dbFld(t('number of members represented'), 'int medium', 1) : NULL,
   );
   $foreignKeys = foreignKey('payee');
   $indexes = index('created') + index('payee') + index('deposit');
   $schema['r_usd'] = dbTable(t('Record of transfers to or from a bank account'), $fields, 'txid', $foreignKeys, $indexes);
+
+  // table r_usd2 (extra transactions in Community Fund Bank Account)
+  $fields = array(
+    'id' => dbFld(t('record ID'), 'serial big'), 
+    'amount' => dbFld(t('amount of transfer'), 'numeric 11,2'), 
+    'completed' => dbFld(t('Unixtime transaction was completed'), 'int 11', 0), // for deposits / withdrawals
+		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', TRUE),
+		'type' => dbFld(t('transaction type (S=service charge, T=transfer between accounts)'), 'char 1'),
+  );
+  $foreignKeys = [];
+  $indexes = index('completed');
+  $schema['r_usd2'] = dbTable(t('Record of transfers to or from a bank account'), $fields, 'id', $foreignKeys, $indexes);
 
   // table r_banks
   $fields = array(

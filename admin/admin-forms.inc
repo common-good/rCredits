@@ -246,69 +246,20 @@ function formSeeChanges($form, &$sta, $qid = '') {
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $date = u\fmtDate($created);
-		if ($field == 'bankAccount') debug(u\decry('V', $oldValue));
 		foreach (ray('oldValue newValue') as $k) $$k = a\formatField($field, ($type = u\crypted($$k)) ? decryChange($type, $$k) : $$k);
-//    $old = a\formatField($field, interpretS($oldValue));
-//    $new = a\formatField($field, interpretS($newValue));
     $changedBy = $changerName ?: "($changedBy)";
     $list[] = "<tr><td>$date</td><td>$field</td><td>$oldValue</td><td>$newValue</td><td>$changedBy</td></tr>";
-//     $date = u\fmtDate($a->ok ? $access : $login);
-//     $nameClass = $a->co ? 'name co' : 'name';
-//     $notes = str_replace("\n", "<br>\n", $a->notes);
-//     $notes = str_replace('do:', '<b class="memberlist-notes">do:</b>', $notes);
-//     $a = r\acct($uid);
-//     $phone = str_replace('+1 ', '', u\fmtPhone($phone0 = $a->phone));
-//     $postalAddr = $a->postalAddr;
-//     $email = $a->email;
-//     $fullName = "<a href=\"$base_url/change-account/acct=$a->mainQid&page=summary\">$fullName</a>";
-//     $steps = a\showSteps($a);
-
-//     if ($cAdmin) {
-//       $bits = []; // zap previous value
-//       foreach (ray('member ok bank') as $one) if ($a->can(u\consta('b', $one))) $bits[] = $one;
-//       $bits = $bits ? ('<span class="memberlist-bits"> ' . join(' ', $bits) . "</span><br>\n") : '';
-//     } else $bits = '';
-    
-//     $one = "<tr><td colspan=4 class=\"memberlist-line2\">$date: $steps$bits$notes</td></tr>\n";
-//     $list .= <<<EOF
-// <tr>
-// <td class="$nameClass">$fullName</td>
-// <td><a href="mailto:$email" target="_blank">$email</a></td>
-// <td>$phone</td>
-// <td>$postalAddr</td>
-// </tr>
-// $one
-// EOF;
-//     $emails .= "$email, ";
-//   }
-//   $list .= "</table>\n";
-  
-//   $emails = $cAdmin ? item($emails, t('All emails')) : NULL;
-
-//  return cgform(compact(ray('title list emails')), '', FALSE);
-//   if ($a->changes) {
-//     foreach ($a->changes as $dt => $info) {
-//       $date = u\fmtDate($dt);
-//       foreach ($info as $k => $v) {
-//         $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
-/////        if (is_array($v)) $v = print_r($v, 1);
-// //        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
-//         $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
-//         $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
-//       }
-//     }
   }
-//   } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
-  
-  $list = join("\n", $list);
-  $list = item("<table>$list</table>");
+	
+	if (count($list) > 1) {
+		$list = join("\n", $list);
+    $list = item("<table>$list</table>");
+	} else $list = t('No changes');
   
   return cgform(compact(ray('title list')));
 }
 
 function decryChange($type, $v) {return ($type == 'V' and !r\allKnowing()) ? t('(secret)') : u\decry($type, $v);}
-// function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
-// function interpretS($v) {return u\crypted('S', $v . '') ? u\decry('S', $v) : $v;}
 
 /**
  * Log back in to admin automatically.
@@ -606,7 +557,7 @@ function formDownloadMemberList_submit($form, &$sta) {
  */
 function formPhp($form, &$sta, $res = '') {
   $res = item($res);
-  $code = areaFld('', '', dft(\variable_get('code')));
+  $code = areaFld('', '', dft(getV('code')));
   $submit = t('Execute Code');
   return cgform(compact('res', 'code', 'submit'), '', FALSE);
 }
@@ -616,7 +567,7 @@ function formPhp($form, &$sta, $res = '') {
  */
 function formPhp_submit($form, &$sta) {
   extract(just('code', $sta['input']));
-  \variable_set('code', $code); // remember for next time
+  \setV('code', $code); // remember for next time
   $code = <<<EOF
 use CG as r;
 use CG\DB as db;

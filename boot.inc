@@ -122,6 +122,8 @@ define('isSAFARI', stripos($agt, 'Chrome') === FALSE and stripos($agt, 'Safari')
 
 // one-time database changes, if any
 $sqlOnce = <<< X
+  ALTER TABLE `users` CHANGE `changes` `changesX` LONGBLOB NULL DEFAULT NULL COMMENT 'OLD changes made to the account';
+  ALTER TABLE `x_users` CHANGE `changes` `changesX` LONGBLOB NULL DEFAULT NULL COMMENT 'OLD changes made to the account';
 	ALTER TABLE `users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
 	ALTER TABLE `x_users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
 X;

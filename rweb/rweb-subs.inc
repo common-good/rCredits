@@ -969,7 +969,7 @@ define('MAX_IP_FAILS', 50);
 function flooding($uid, &$sta, &$err) {
   if (u\test()) return !$uid;
   $trigger = 'flood_control_triggered';
-  $window = HOUR_SECS; //variable_get('user_failed_login_ip_window', HOUR_SECS);
+  $window = HOUR_SECS; 
   if (!\flood_is_allowed('failed_login_attempt_ip', MAX_IP_FAILS, $window)) {
     $sta[$trigger] = 'ip';
     $err = t('There have been too many failed sign-in attempts from your IP Address. Try again later.');
@@ -980,8 +980,8 @@ function flooding($uid, &$sta, &$err) {
   $err = t('bad login');
   if (!$uid) return TRUE;
 
-  $uidOnly = FALSE; //variable_get('user_failed_login_identifier_uid_only', FALSE);
-  $window = 6 * HOUR_SECS; //variable_get('user_failed_login_user_window', 6 * HOUR_SECS);
+  $uidOnly = FALSE; 
+  $window = 6 * HOUR_SECS;
   $sta['flood_control_user_identifier'] = $id = $uidOnly ? $uid : $uid . '-' . ip_address();
   if (!\flood_is_allowed('failed_login_attempt_user', MAX_PW_FAILS, $window, $id)) {
     $sta[$trigger] = 'user';
