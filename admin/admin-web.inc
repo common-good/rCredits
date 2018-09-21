@@ -15,7 +15,7 @@ use CG\Web as w;
 function seeSecure($a) {
   global $mya;
   $secure = $a->secure;
-  foreach (ray(R_SECURE_FIELDS) as $k) if (isset($secure[$k])) {
+  foreach (ray(SECURE_FLDS) as $k) if (isset($secure[$k])) {
     $new[$k] = $secure[$k]; // reorder
     $show[$k] = $a->$k; // some need decrypting
   }
@@ -23,7 +23,7 @@ function seeSecure($a) {
 
 	if ($mya->superAdmin) {
 	  $vsecure = $a->vsecure;
-		foreach (ray(R_VSECURE_FIELDS) as $k) if (isset($vsecure[$k])) {
+		foreach (ray(VSECURE_FLDS) as $k) if (isset($vsecure[$k])) {
 			$vnew[$k] = $vsecure[$k]; // reorder
 			$show[$k] = $a->$k; // some need decrypting
 		}
@@ -35,7 +35,7 @@ function seeSecure($a) {
 
 /*
 function seeHidden($a) {
-  foreach (ray(R_SECRET_FIELDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
+  foreach (ray(R_SECRET_FLDS) as $k) if ($k != 'ssnData') $ray[$k] = $a->$k;
   say(u\rayTable($ray, FALSE));
 }
 */

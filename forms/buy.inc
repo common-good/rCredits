@@ -84,7 +84,7 @@ function formBuy_submit($form, &$sta) {
   // check for op not 'submit' here, to send an invoice
   list ($index, $subs) = $a->pay($co, $amount, @$item ?: t('donation'));
   $msg = tr($index, $subs);
-  if ($ok = @$subs['success']) $msg = t('<h3>Success!</h3>') . $msg;
+  if ($ok = @$subs['success']) $msg = t('<h3>Success!</h3> ') . $msg;
 //  . t('<br><br><%a>Click here</a> to return to the %companyName website.', '_a companyName', atag($return), $co->fullName);
   if (@$api) u\post($api, ray('request ok msg', $request, (int) $ok, $msg));
   foreach (ray('return cancel') as $k) if (@$$k) $$k = tr($$k, $args + compact(ray('msg ok')));
@@ -103,5 +103,6 @@ function formBuy_submit($form, &$sta) {
  */
 function buySay($msg, $info) {
   list ($code, $info) = is_array($info) ? [r\makeDoCode($info), 'err'] : ['done', $info];
-  return w\go("pay-with-cg/$code", $msg, $info);
+	say($msg, $info);
+  return w\go("pay-with-cg/$code");
 }

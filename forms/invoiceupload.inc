@@ -11,7 +11,7 @@ use CG\Db as db;
  * The validate and submit functions are also called by PaymentsUpload and Payroll.
  */
 function formInvoiceUpload($form, &$sta) {
-  global $base_url, $mya;
+  global $mya;
 
   $title = t('Upload Invoices');
   $selling = explode("\n", $mya->selling);
@@ -24,14 +24,8 @@ function formInvoiceUpload($form, &$sta) {
 }
 
 function formInvoiceUpload_validate($form, &$sta) {
-  if (!@$_FILES['files']['name']['file']) return say('upload required', 'file');
-  $file = new \stdClass();
-  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
-  if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
-    if (!in($filetype, 'text/csv text/plain')) return say('bad file type', compact('filetype'), 'file');
-  }
-  if ($file->size > R_MAX_UPLOAD_SIZE * 1024000) return say(t('That file is too big'), 'file');
-  $sta['input']['rows'] = w\uploadRows($file->tmp_name);
+  if (!$filename = w\uploadFile($err)) return w\say($err, 'file');
+  $sta['rows'] = w\uploadRows($filename);
 }
 
 function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
@@ -41,11 +35,10 @@ function formInvoiceUpload_submit($form, &$sta, $args = NULL) {
   $selling = explode("\n", $mya->selling);
   u\setDft($args, ray($fields, TRUE, $selling[0], t('invoiced'), [], NULL));
   extract(just($fields, $args));
-  extract(just('rows', $sta['input']));
   
   $total = 0;
 
-  if (@$rows) foreach ($rows as $i => $row) {
+  if ($rows = @$sta['rows']) foreach ($rows as $i => $row) {
     if ($i == 0 and !strpos(@$row[0], '@')) {say(t('The header row (line 1) will be ignored.')); continue;}
 
     $e = ray('did line row', $did, $i + 1, join(' | ', $row)); // params for error message(s)

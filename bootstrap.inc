@@ -719,7 +719,7 @@ function drupal_get_filename($type, $name, $filename = NULL) {
  * Loads the persistent variable table.
  *
  * The variable table is composed of values that have been saved in the table
- * with variable_set() as well as those explicitly specified in the
+ * with setV() as well as those explicitly specified in the
  * configuration file.
  */
 function variable_initialize($conf = []) {
@@ -767,14 +767,15 @@ function variable_initialize($conf = []) {
  * @return
  *   The value of the variable. Unserialization is taken care of as necessary.
  *
- * @see variable_del()
- * @see variable_set()
+ * @see delV()
+ * @see setV()
  */
-function variable_get($name, $default = NULL) {
+function getV($name, $default = NULL) {
   global $conf;
 
   return isset($conf[$name]) ? $conf[$name] : $default;
 }
+function variable_get($nm, $dft = NULL) {return getV($nm, $dft);} // for legacy Drupal
 
 /**
  * Sets a persistent variable.
@@ -789,10 +790,10 @@ function variable_get($name, $default = NULL) {
  *   The value to set. This can be any PHP data type; these functions take care
  *   of serialization as necessary.
  *
- * @see variable_del()
- * @see variable_get()
+ * @see delV()
+ * @see getV()
  */
-function variable_set($name, $value) {
+function setV($name, $value) {
   global $conf;
 
   db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
@@ -801,6 +802,7 @@ function variable_set($name, $value) {
 
   $conf[$name] = $value;
 }
+function variable_set($k, $v) {return setV($k, $dft);} // for legacy Drupal
 
 /**
  * Unsets a persistent variable.
@@ -812,10 +814,10 @@ function variable_set($name, $value) {
  * @param $name
  *   The name of the variable to undefine.
  *
- * @see variable_get()
- * @see variable_set()
+ * @see getV()
+ * @see setV()
  */
-function variable_del($name) {
+function delV($name) {
   global $conf;
 
   db_delete('variable')
@@ -825,6 +827,7 @@ function variable_del($name) {
 
   unset($conf[$name]);
 }
+function variable_del($nm) {return delV($nm);} // for legacy Drupal
 
 /**
  * Retrieves the current page from the cache.
@@ -1128,7 +1131,7 @@ function drupal_serve_page_from_cache(stdClass $cache) {
   // max-age > 0, allowing the page to be cached by external proxies, when a
   // session cookie is present unless the Vary header has been replaced or
   // unset in hook_boot().
-  $max_age = !isset($_COOKIE[session_name()]) || isset($hook_boot_headers['vary']) ? variable_get('page_cache_maximum_age', 0) : 0;
+  $max_age = !isset($_COOKIE[session_name()]) || isset($hook_boot_headers['vary']) ? getV('page_cache_maximum_age', 0) : 0;
   $default_headers['Cache-Control'] = 'public, max-age=' . $max_age;
 
   // Entity tag should change if the output changes.
@@ -1168,7 +1171,7 @@ function drupal_serve_page_from_cache(stdClass $cache) {
   // response to reply to a subsequent request for a given URL without
   // revalidation. If a Vary header has been set in hook_boot(), it is assumed
   // that the module knows how to cache the page.
-  if (!isset($hook_boot_headers['vary']) && !variable_get('omit_vary_cookie')) {
+  if (!isset($hook_boot_headers['vary']) && !getV('omit_vary_cookie')) {
     header('Vary: Cookie');
   }
 
@@ -1806,7 +1809,7 @@ function drupal_is_denied($ip) {
   // Because this function is called on every page request, we first check
   // for an array of IP addresses in settings.php before querying the
   // database.
-  $blocked_ips = variable_get('blocked_ips');
+  $blocked_ips = getV('blocked_ips');
   $denied = FALSE;
   if (isset($blocked_ips) && is_array($blocked_ips)) {
     $denied = in($ip, $blocked_ips);
@@ -2055,7 +2058,7 @@ function drupal_array_merge_deep_array($arrays) {
  * @return Object - the user object.
  */
 function drupal_anonymous_user() {
-  $user = variable_get('drupal_anonymous_user_object', new stdClass);
+  $user = getV('drupal_anonymous_user_object', new stdClass);
   $user->uid = 0;
   $user->hostname = ip_address();
   $user->roles = [];
@@ -2122,6 +2125,11 @@ function drupal_bootstrap() {
   require_once DRUPAL_ROOT . '/includes/common.inc';
   _drupal_bootstrap_full();
 
+	if (@$sqlOnce and \getV('version', '') != R_VERSION) {
+		\db_query($sqlOnce); // make database changes for this update, if any
+		\setV('version', R_VERSION);
+	}		
+
   return DRUPAL_BOOTSTRAP_FULL;
 }
 
@@ -2131,13 +2139,13 @@ function drupal_bootstrap() {
 function drupal_get_user_timezone() {
   return @date_default_timezone_get(); // cg 20171119
   global $user;
-  if (variable_get('configurable_timezones', 1) && $user->uid && $user->timezone) {
+  if (getV('configurable_timezones', 1) && $user->uid && $user->timezone) {
     return $user->timezone;
   }
   else {
     // Ignore PHP strict notice if time zone has not yet been set in the php.ini
     // configuration.
-    return variable_get('date_default_timezone', @date_default_timezone_get());
+    return getV('date_default_timezone', @date_default_timezone_get());
   }
 }
 
@@ -2207,7 +2215,7 @@ function _drupal_bootstrap_variables() {
   global $conf;
 
   // Initialize the lock system.
-  require_once DRUPAL_ROOT . '/' . variable_get('lock_inc', 'includes/lock.inc');
+  require_once DRUPAL_ROOT . '/includes/lock.inc';
   lock_initialize();
 
   // Load variables from the database, but do not overwrite variables set in settings.php.
@@ -2323,12 +2331,12 @@ function drupal_maintenance_theme() {
  * accounted for in this function.
  */
 function drupal_fast_404() {
-  $exclude_paths = variable_get('404_fast_paths_exclude', FALSE);
+  $exclude_paths = getV('404_fast_paths_exclude', FALSE);
   if ($exclude_paths && !preg_match($exclude_paths, $_GET['q'])) {
-    $fast_paths = variable_get('404_fast_paths', FALSE);
+    $fast_paths = getV('404_fast_paths', FALSE);
     if ($fast_paths && preg_match($fast_paths, $_GET['q'])) {
       drupal_add_http_header('Status', '404 Not Found');
-      $fast_404_html = variable_get('404_fast_html', '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>');
+      $fast_404_html = getV('404_fast_html', '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML+RDFa 1.0//EN" "http://www.w3.org/MarkUp/DTD/xhtml-rdfa-1.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>');
       // Replace @path in the variable with the page path.
       print strtr($fast_404_html, array('@path' => check_plain(request_uri())));
       exit;
@@ -2429,7 +2437,7 @@ function drupal_multilingual() {
   // The "language_count" variable stores the number of enabled languages to
   // avoid unnecessarily querying the database when building the list of
   // enabled languages on monolingual sites.
-  return variable_get('language_count', 1) > 1;
+  return getV('language_count', 1) > 1;
 }
 
 /**
@@ -2440,7 +2448,7 @@ function drupal_multilingual() {
  *   name and its value is its configurability (TRUE/FALSE).
  */
 function language_types() {
-  return array_keys(variable_get('language_types', drupal_language_types()));
+  return array_keys(getV('language_types', drupal_language_types()));
 }
 
 /**
@@ -2466,7 +2474,7 @@ function language_list($field = 'language') {
       // Users cannot uninstall the native English language. However, we allow
       // it to be hidden from the installed languages. Therefore, at least one
       // other language must be enabled then.
-      if (!$languages['language']['en']->enabled && !variable_get('language_native_enabled', TRUE)) {
+      if (!$languages['language']['en']->enabled && !getV('language_native_enabled', TRUE)) {
         unset($languages['language']['en']);
       }
     }
@@ -2496,7 +2504,7 @@ function language_list($field = 'language') {
  *   Optional property of the language object to return
  */
 function language_default($property = NULL) {
-  $language = variable_get('language_default', (object) array('language' => 'en', 'name' => 'English', 'native' => 'English', 'direction' => 0, 'enabled' => 1, 'plurals' => 0, 'formula' => '', 'domain' => '', 'prefix' => '', 'weight' => 0, 'javascript' => ''));
+  $language = getV('language_default', (object) array('language' => 'en', 'name' => 'English', 'native' => 'English', 'direction' => 0, 'enabled' => 1, 'plurals' => 0, 'formula' => '', 'domain' => '', 'prefix' => '', 'weight' => 0, 'javascript' => ''));
   return $property ? $language->$property : $language;
 }
 
@@ -2626,12 +2634,12 @@ function ip_address() {
   if (!isset($ip_address)) {
     $ip_address = $_SERVER['REMOTE_ADDR'];
 
-    if (variable_get('reverse_proxy', 0)) {
-      $reverse_proxy_header = variable_get('reverse_proxy_header', 'HTTP_X_FORWARDED_FOR');
+    if (getV('reverse_proxy', 0)) {
+      $reverse_proxy_header = getV('reverse_proxy_header', 'HTTP_X_FORWARDED_FOR');
       if (!empty($_SERVER[$reverse_proxy_header])) {
         // If an array of known reverse proxy IPs is provided, then trust
         // the XFF header if request really comes from one of them.
-        $reverse_proxy_addresses = variable_get('reverse_proxy_addresses', []);
+        $reverse_proxy_addresses = getV('reverse_proxy_addresses', []);
 
         // Turn XFF header into an array.
         $forwarded = explode(',', $_SERVER[$reverse_proxy_header]);
@@ -3000,7 +3008,7 @@ function registry_update() {
  *   // $stack tracks the number of recursive calls.
  *   static $stack;
  *   $stack++;
- *   if ($stack > variable_get('actions_max_stack', 35)) {
+ *   if ($stack > getV('actions_max_stack', 35)) {
  *     ...
  *     return;
  *   }

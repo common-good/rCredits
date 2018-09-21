@@ -12,7 +12,7 @@ use CG\Util as u;
 require_once __DIR__ . '/cg-util.inc';
 
 define('NO_LOGSQL_TABLES', 'r_do queue sessions r_invites r_near r_nonmembers r_request cache_form r_stats'); // don't log deletions from these files
-define('CGID', \variable_get('cgf_uid')); // Common Good's account ID (has to be here rather than in defs.inc)
+define('CGID', getV('cgf_uid')); // Common Good's account ID (has to be here rather than in defs.inc)
 
 /**
  * Do a database query with easy substitutions.
@@ -64,6 +64,7 @@ function get($fieldName, $table, $where = '1', $subs = []) {
   if (@$several and $result) u\EXPECT(\count($result) == $fieldCount, 'field count is off'); // eg, if $fieldName == 'a,a' (\count because this class has a count function!)
   return $result;
 }
+function exists($table, $where = '1', $subs = []) {return db\get(1, $table, $where, $subs);}
 
 /**
  * Update a database record 
@@ -116,20 +117,6 @@ function update($table, $info, $key, $either = FALSE) {
  * @return: record key of the inserted record (FALSE on failure)
  */
 function insert($table, $info) {return db\update($table, $info, '');}
-
-/**
- * Say whether the described record exists.
- * call by dbExists($table, $where, $subs)
- *      or dbExists($table, $subs) where $subs contains the required field names and their values
- */
-function exists($table, $where = '1', $subs = []) {
-  if (is_array($where)) {
-    $subs = $where;
-    foreach ($where as $key => $value) $where[$key] = "$key=:$key";
-    $where = join(' AND ', $where);
-  }
-  return db\get(1, $table, $where, $subs);
-}
 
 /**
  * Return an array of record objects.

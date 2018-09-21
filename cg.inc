@@ -49,6 +49,26 @@ function regionalInsert($table, $idField, $record, $region = NULL) {
 }
 
 /**
+ * Save a record in the given table *that has no AUTO_INCREMENT* returning the record ID of the inserted record.
+ * @param string $table: table to save in (anything but users or r_relations)
+ * @param string $idField: name of record ID field (uid or reid)
+ * @param assoc  $record: the record to save (possibly with record ID already chosen)
+ * @return record ID of the inserted record
+ */
+function insert($table, $idField, $record) {
+  if (@$record[$idField]) return db\insert($table, $record); // predestined id (probably for testing)
+  for ($try = 0; $try < 20; $try++) { // limit the retries
+    if (!$id = $record[$idField] = u\firstUnusedId($idField, $table, 1)) break;
+    try {
+      if (db\insert($table, $record)) return $id;
+    } catch (Exception $e) { // BIG MYSTERY: can this happen sometimes with no collision?
+      r\tellAdmin(t('cannot save: ') . $e->getMessage(), $record + ['topic' => t('cannot save')]);
+    }
+  }
+  u\EXPECT(FALSE, "failed to save $table record after $try tries.");
+}
+
+/**
  * Say whether a given payment is giving back rewards to the community.
  * @param int $payer: record id of who is maybe giving back
  * @param int $payee: record id of payee
@@ -640,8 +660,8 @@ function uniqueName($fullName, $info = []) {
  */
 function loginString($id) {
   if (u\isQid($id = trim(strtoupper($id))) and $acct = r\acct($id)) return $acct->id; // try to interpret as a qid
-  $mail = u\cry('P', strtolower($id));
-  return db\get('uid', 'users', 'name=:id OR mail=:mail ORDER BY :IS_CO', compact('id', 'mail'));
+  $email = u\cry('P', strtolower($id));
+  return db\get('uid', 'users', 'name=:id OR email=:email ORDER BY :IS_CO', compact('id', 'email'));
 }
   
 /**
@@ -791,13 +811,15 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_ballots:proxy',
   // r_banks
     'r_boxes:uid:D',
+		'r_changes:uid:D',
+		'r_changes:changedBy',
 		'r_company:uid:D',
   // r_countries
     'r_coupated:uid',
     'r_coupons:fromId',
     'r_do:uid:D',
     'r_events:ctty',
-//    'r_gifts:uid:D',
+    'r_gifts:uid:D',
     'r_honors:uid:D', // honors are deletable if donation never completed
   // r_industries
     'r_investments:coid',
@@ -837,6 +859,7 @@ function changeUid($a, $newUid = 0, $unusable = FALSE, $delete = FALSE) {
     'r_txs:payerAgent',
     'r_txs:payeeAgent',
     'r_usd:payee',
+  // r_usd2
     'r_user_industries:uid:D',
   // r_votes
     'sessions:uid:D',
@@ -935,7 +958,7 @@ function noticeArgs($uid, $where = '0', $weekly = FALSE, $monthly = FALSE, $at =
 //  $savings = u\fmtAmt($a->rewards);
   $creditLine = u\fmtAmt(-$a->floor);
   list ($rewards, $ourEmail) = array(u\fmtAmt($a->rewards), $a->cttyA->email);
-  $companies = \variable_get('companies');
+  $companies = getV('companies');
   $companies = $companies[u\test() ? r\serverUid() : (int) $a->community];
   return compact(ray('messages unit range yestertime balance creditLine return ourEmail companies'));
 }
@@ -1407,9 +1430,9 @@ function promoLink($page = '') {
  * @return TRUE if the system is up
  */
 function up($up = NULL) {
-  if (is_null($up)) return \variable_get('up', TRUE);
+  if (is_null($up)) return getV('up', TRUE);
   u\log('System is ' . ($up ? 'UP' : 'DOWN'));
-  return \variable_set('up', $up);
+  return setV('up', $up);
 }
 
 /**
@@ -1506,9 +1529,9 @@ function stepsDone0() {return array_fill_keys(array_keys(ray(R_STEPS)), FALSE);}
 function isReward($type) {return in($type, TX_REWARDS);}
 //function usdin($for) {return u\abbreviates('usd in (', strtolower(is_array($for) ? $for[1] : $for));}
 function usdin($for) {return u\abbreviates(S_USD_IN, is_array($for) ? $for[1] : $for, TRUE);}
-function regionField($fld) {return ($mya = r\acct(serverUid())) ? $mya->$fld : NULL;}
+function regionField($fld) {return ($a = r\acct(serverUid())) ? $a->$fld : NULL;}
 function signedIn() {return r\acct() ? TRUE : FALSE;}
 function iCodeDesc($iCode) {$iCodeDescs = ray(IBYS); return $iCodeDescs[min($iCode, IBY_ICARD) - IBY0];}
 function cttyList() {return db\q("SELECT uid,fullname FROM users WHERE uid<0 ORDER BY created,fullName")->fetchAllKeyed();}
-function allKnowing() {global $mya; return (bool) $mya->agentA->vKeyPw;}
+function allKnowing() {global $mya; return ($mya->superAdmin and $mya->agentA->vKeyPw);}
 function clubid() {return r\serverUid();} // temporarily use the region as the club

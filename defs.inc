@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.42b'); // software version
+define('R_VERSION', '3.42c'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
@@ -94,17 +94,18 @@ define('COMPANY_FREEZE', FALSE); // companies cannot spend rewards yet
 define('R', '<span class="r">r</span>');
 define('US', '<span class="us">us</span>');
 define('GAME_COMPANIES', '.,.,.,.,Gift Shop,Religious Institution,For Rent,Empty,Vacant Lot,Land,Cinema,Printing & Office Supply,Car Repair,Health Club/Gym,Restaurant,Hardware & Supply,Grocer,Farm,Food Processing,Department Store,Electric Company,Oil Company,Town Government,Community College,Hospital');
-define('R_REGION_FIELDS', 'region,fullName,st,zip,federalId,hasServer');
-define('R_DATE_FIELDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
-define('CO_FIELDS', 'coType website description shortDesc selling coFlags gross serviceArea employees payrollStart payrollEnd'); // account fields stored in r_company
-define('R_DATA_FIELDS', 'legalName shortName newAccount by calling wants giftPot giftCoupons notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
-define('MASTER_NUMERIC_FIELDS', 'minimum achMin savingsAdd saveWeekly');
-define('MASTER_FIELDS', MASTER_NUMERIC_FIELDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
-define('R_MONEY_FIELDS', 'balance rewards floor giftPot committed'); // financial amount fields in account record
-define('JOINT_FIELDS', R_MONEY_FIELDS . ' savings'); // add these together for joint accounts
-define('R_VSECURE_FIELDS', 'federalId dob bankAccount'); // very secure fields (pgp-encrypted)
-define('R_SECURE_FIELDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
-define('R_HIDE_CHANGES', R_MONEY_FIELDS . ' pw2 vKeyPw ssnData hasBank changes init login access activated data secure vsecure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle payrollStart payrollEnd'); // do not record changes to these fields: anything often-changed (automatically or not)
+define('R_REGION_FLDS', 'region,fullName,st,zip,federalId,hasServer');
+define('R_DATE_FLDS', 'created completed deposit sent invited giftDate signed login access yesterday'); // date field names for testing
+define('CO_FLDS', 'coType website description shortDesc selling coFlags gross serviceArea employees payrollStart payrollEnd'); // account fields stored in r_company
+define('DATA_FLDS', 'legalName shortName newAccount by calling wants giftPot giftCoupons notifyNowBy signupCo stepsDone achMin pinThreshold lastTx lastiCode tenure moves mediaConx source getAppData appData'); // fields stored in the account's "data" array field (serialized)
+define('MASTER_NUMERIC_FLDS', 'minimum achMin savingsAdd saveWeekly');
+define('MASTER_FLDS', MASTER_NUMERIC_FLDS . ' hasBank bankAccount last4bank refill'); // only in master, for joint accounts
+define('R_MONEY_FLDS', 'balance rewards floor giftPot committed'); // financial amount fields in account record
+define('JOINT_FLDS', R_MONEY_FLDS . ' savings'); // add these together for joint accounts
+define('PSECURE_FLDS', 'phone email'); // personal fields that get encrypted in a searchable way (P)
+define('VSECURE_FLDS', 'federalId dob bankAccount'); // very secure fields (pgp-encrypted)
+define('SECURE_FLDS', 'pw2 vKeyPw ssnData address postalAddr faxetc emailCode cardCode cardCode2 pin question answer idProof oneTimePass last4bank'); // non-personal encrypted fields (must be complete list)
+define('R_HIDE_CHANGES', R_MONEY_FLDS . ' pw2 vKeyPw ssnData hasBank changes init login access activated data secure vsecure stepsDone lastTx lastiCode pass oneTimePass notes picture photo trust risk risks stats getAppData appData special last4bank lastip tickle payrollStart payrollEnd'); // do not record changes to these fields: anything often-changed (automatically or not)
 define('R_APP_DATA_GETS', '!log !device !members !txs '); // data requests from the rPOS app
 //  define('R_AVAIL_BUY', '(balance-IF(u.:IS_DEBT, floor, GREATEST(floor, 0)))'); // balance available to spend
 define('R_SHARE_MAX', 50); // minimum sharing percentage
@@ -119,7 +120,7 @@ define('R_MAX_TASK_TIME', 1*60); // what's the longest a queued cron task might 
 define('PERSONAL_STEP_COUNT', t('seven'));
 define('COMPANY_STEP_COUNT', t('eight'));
 define('R_STEPS', 'signup:signup, verify, ssn, sign:community/agreement, donate:community/donate, proxies, prefs:settings/preferences, connect, company, relations, photo'); // membership steps
-define('R_NOLOG', R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' data secure vsecure secret oneTimeLoginUrl password pass pass1 pass2 vKeyE newPass external_input form_build_id'); // don't log these (external_input may contain passwords and is duplicated as individual fields)
+define('R_NOLOG', SECURE_FLDS . ' ' . VSECURE_FLDS . ' data secure vsecure secret oneTimeLoginUrl password pass pass1 pass2 vKeyE newPass external_input form_build_id'); // don't log these (external_input may contain passwords and is duplicated as individual fields)
 define('R_NOLOG_FORMS', 'Admin Test Handy footer accounts history settings settings/icon community Summary Php'); // don't log visits to these forms
 define('R_ANON_FORMS', R_NOLOG_FORMS . ' Signup Signin PageNotFound Sinx Pass Empty TestRecovery ChangePassword Help Community Democracy Agreement CttyFunds Reports Flags Game Menu I ResetPassword Profile Accept Buy HandleInvoice FindCo'); // no login required
 define('SSN_ERR_INDEX', 'CGerror'); // where to put/find error messages in ssnData
@@ -131,10 +132,9 @@ define('DEPOSIT_SQL', '(amount>0 XOR txid<0)'); // SQL fragment for "transfer is
 define('CANONIC_ACCTS', 3); // number of canonic accounts (admin, placeholders,...)
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
-define('R_MIN_PHOTO_WIDTH', 240); // how wide to make profile pictures (unless too long)
-define('R_MAX_PHOTO_WIDTH', 1024);
-define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as they look
-define('R_MAX_UPLOAD_SIZE', 4); // maximum upload size in MB
+define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as individual photos
+define('MAX_UPLOAD_SIZE', 4 * 1024000); // maximum upload size in bytes
+
 define('R_URL_SLASH', '%_%'); // Drupal gets confused by slashes in a url, even if urlencoded
 define('R_EXCHANGE_LIMITS', '1:5000,7:20000,49:80000,365:500000'); // per day, week, 7-week, year
 define('R_INVITE_DAYS', 30); // number of days to accept invitation to membership
@@ -335,8 +335,8 @@ define('B_r5', 5); // is employed by main account
 define('B_r6', 6); // is employed by main account
 define('B_DRAW', 7); // can draw funds from main account (same number as B_DRAWS in the users table)
 define('REL_FLAGS', 'employee owner customer autopay r4 r5 r6 draw');
-define('REL_FIELDS', 'main other otherNum permission code');
-define('REL_DATA_FIELDS', 'fullName email phone address city state zip address2 city2 state2 zip2 partner partnerCode customer source qid country postalAddr'); // pseudo-fields typically stored in data field
+define('REL_FLDS', 'main other otherNum permission code');
+define('REL_DATA_FLDS', 'fullName email phone address city state zip address2 city2 state2 zip2 partner partnerCode customer source qid country postalAddr'); // pseudo-fields typically stored in data field
 
 // Relationship permissions used in calls to r\Acct::can() -- stored (less B_RELATED) in r_relations
 define('B_RELATED', 100); // has a relationship record
@@ -387,7 +387,7 @@ define('K_CTTY_THRESHOLD', 100); // minimum size of community transactions to co
 // a weight of "X" means the risk is named but does not contribute to the total risk score
 define('K_ACCT_RISKS', 'adminOk:-0.3,trusted:-4,socialConx:-3,hasBank:-3,geography:4,cashCo:2,new:5,moves:3,rents:10,badConx:2,homeCo:20,shady:3,miser:5,photoOff:1,addrOff:5,ssnOff:1,dobOff:4,poBox:5,fishy:2,moreIn:2,moreOut:2,bigDay:1,bigWeek:1,big7Week:1,bigYear:2');
 define('K_ACCT_RISKS_EDITABLE', 'adminOk cashCo rents shady photoOff addrOff ssnOff dobOff fishy');
-define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2'); // names of transaction risks
+define('K_TX_RISKS', 'txAdminOk:-0.3,redo:2,exchange:2,cashIn:5,cashOut:2,fromBank:5,toBank:2,b2p:2,p2p:2,inhouse:2,fromSuspect:3,toSuspect:3,absent:4,invoiceless:4,bigFrom:3,biggestFrom:3,oftenFrom:3,bigTo:3,biggestTo:3,oftenTo:3,offline:10,firstOffline:3,origins:3,suspectOut:2,manualReconcile:3'); // names and size of transaction risks
 define('K_ADMINOK', 0); // community admin blessed the account or transaction
 define('K_HASBANK', 3); // account has a connected bank account
 define('HAS_BANK', 'risks&(1<<' . K_HASBANK . ')'); // mysql criterion (not surrounding parens, so we can do u.:HAS_BANK)
@@ -462,8 +462,8 @@ define('NORMAL_TX_ROWS', 30); // normal number of transaction lines to show
 define('TX_MAX_ROWS', 500); // (unused) maximum number of transactions to load at once
 define('TX_MAX_MOS', 18); // maximum transaction months, for display
 define('TX_MAX_DAYS', 30.5 * TX_MAX_MOS + 2); // maximum days in a transaction query (18 months) -- 2 for leap day & daylight
-define('TX_DOWNLOAD_MONEY_FIELDS', 'frombank fromyou toyou reward net');
-define('TX_DATA_FIELDS', 'undoneBy undoes force changes'); // serialized pseudo-fields in the data field of a transaction record
+define('TX_DOWNLOAD_MONEY_FLDS', 'frombank fromyou toyou reward net');
+define('TX_DATA_FLDS', 'undoneBy undoes force changes'); // serialized pseudo-fields in the data field of a transaction record
 
 $GLOBALS['emailSubjects'] = array(
 /*  'new-payment' => t('%PROJECT PAYMENT from {otherName}'),

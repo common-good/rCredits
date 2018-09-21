@@ -319,6 +319,21 @@ function goFar($url, $params = '') {
   return w\go(BASE_URL . '/rcredits/relay.php?goto=' . $url);
 }
 
+/**
+ * Process an uploaded file, returning the filename (or returning FALSE and setting an error message).
+ */
+function uploadFile(&$err = '') {
+  if (!@$_FILES['files']['name']['file']) return !$err = t('upload required');
+  $file = new \stdClass();
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
+  if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
+    if (!in($filetype, 'text/csv text/plain')) return !$err = t('bad file type', compact('filetype'));
+  }
+  if ($file->size > MAX_UPLOAD_SIZE) return !$err = t('That file is too big.');
+	if (!$file->size) return !$err = t('That file is empty.');
+	return $file->tmp_name;
+}
+
 function htmlItem($name, $id, $value, $class, $other = []) {return $value;}
 
 function htmlText($name, $id, $value, $class, $other = []) {
@@ -551,7 +566,7 @@ function showRecords($ray, $formatFunc = 'CG\\Web\\formatField', $flagsField = B
 function formatField($k, $v) {
   $v = $v . ''; // convert to string
 //  if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
-//  if ($v and in_array($k, ray(R_DATE_FIELDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+//  if ($v and in_array($k, ray(R_DATE_FLDS))) $v = '<div style="line-height:65%;">' . strftime('%d%b', $v) . '<span style="font-size:50%;">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
 
   if (u\crypted('P', $v)) $v = u\decry('P', $v); // decrypt phone and email
   if ($k == 'phone') $v = u\fmtPhone($v);
@@ -954,7 +969,7 @@ define('MAX_IP_FAILS', 50);
 function flooding($uid, &$sta, &$err) {
   if (u\test()) return !$uid;
   $trigger = 'flood_control_triggered';
-  $window = HOUR_SECS; //variable_get('user_failed_login_ip_window', HOUR_SECS);
+  $window = HOUR_SECS; 
   if (!\flood_is_allowed('failed_login_attempt_ip', MAX_IP_FAILS, $window)) {
     $sta[$trigger] = 'ip';
     $err = t('There have been too many failed sign-in attempts from your IP Address. Try again later.');
@@ -965,8 +980,8 @@ function flooding($uid, &$sta, &$err) {
   $err = t('bad login');
   if (!$uid) return TRUE;
 
-  $uidOnly = FALSE; //variable_get('user_failed_login_identifier_uid_only', FALSE);
-  $window = 6 * HOUR_SECS; //variable_get('user_failed_login_user_window', 6 * HOUR_SECS);
+  $uidOnly = FALSE; 
+  $window = 6 * HOUR_SECS;
   $sta['flood_control_user_identifier'] = $id = $uidOnly ? $uid : $uid . '-' . ip_address();
   if (!\flood_is_allowed('failed_login_attempt_user', MAX_PW_FAILS, $window, $id)) {
     $sta[$trigger] = 'user';
@@ -1321,8 +1336,8 @@ function emailOkay(&$email0, $dupsOk, $a = FALSE, $suppressErr = FALSE) {
  */
 function emailDup($email0, $uid, $suppressErr = FALSE) {
   global $base_url;
-  $mail = u\cry('P', $email0);
-  if (!$who = db\get('fullName', 'users', 'mail=:mail and uid<>:uid AND NOT :IS_CO', compact('mail', 'uid'))) return FALSE;
+  $email = u\cry('P', $email0);
+  if (!$who = db\get('fullName', 'users', 'email=:email and uid<>:uid AND NOT :IS_CO', compact('email', 'uid'))) return FALSE;
   if (!$suppressErr) {
     $_a = atag("/settings/password/$email0");
     $emailTagged = str_replace('@', '+whatever@', $email0);

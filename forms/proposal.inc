@@ -152,7 +152,7 @@ function formProposal_submit($form, &$sta) {
   $input['categories'] = join(' ', array_keys($input['cats']));
 	
 	foreach ($input['recovery'] as $k => $v) u\setBit($recs, $k);
-	$input['recovery'] = @$recs;
+	$input['recovery'] = @$recs ?: 0;
   db\insert('r_proposals', $info = just($dbFields, $input));
   r\tellCO('funding proposal received', $info);
   w\go('community', t('Your funding application has been submitted! The process of evaluating proposals may take several weeks. You will hear from us whether or not your proposal is chosen for funding.'));

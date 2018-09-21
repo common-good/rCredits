@@ -57,6 +57,7 @@ EOF;
     } */
     $do1099btest = submi(t('1099B TEST'));
     $do1099b = submi('1099B');
+		$reconcile = submi('Reconcile Ctty Fund');
     $tables .= ' notices boxes do stats usd nonmembers';
     $special = submi(t('Special'));
     $askForAppData = submi(t('Ask for App Data'));
@@ -78,7 +79,7 @@ EOF;
   }
 
   foreach (ray($tables) as $one) $do[$one] = submi($one);
-  $do += compact(ray('inviteeStatus organizerList signupCos do1099btest do1099b special stop start stopCtty startCtty'));
+  $do += compact(ray('inviteeStatus organizerList signupCos do1099btest do1099b reconcile special stop start stopCtty startCtty'));
   $do = fieldSet('do', $do);
   
   $acctSet = fieldSet('acctSet', compact(ray('account make2 printId seeData seeChanges ssnLink seeSecure resetSSN askForAppData seeAppData')));
@@ -145,6 +146,8 @@ function formAdminPanel_submit($form, &$sta) {
   } elseif ($op == 'do1099b' or $test1099 = ($op == 'do1099btest')) {
     include_once __DIR__ . '/../cg-yearly.inc';
     r\Special\do1099bs(@$test1099);
+	} elseif ($op == 'reconcile') {
+		w\go('sadmin/reconcile-ctty-fund');
   } elseif ($op == 'inviteeStatus') {
     return w\go('community/invite/invited-whom');
   } elseif ($op == 'organizerList') {
@@ -235,29 +238,28 @@ function formOrganizerList_submit($form, &$sta) {
 function formSeeChanges($form, &$sta, $qid = '') {
   $a = r\acct($qid);
   $title = t('Account Changes for ') . $a->fullName;
-  $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th>';
-  $rec = []; // track historical field values
+  $list[] = '<tr><th>Date</th><th>Field</th><th>Old Value</th><th>New Value</th><th>Changed by</th></tr>';
+  // $rec = []; // track historical field values
 
-  if ($a->changes) {
-    foreach ($a->changes as $dt => $info) {
-      $date = u\fmtDate($dt);
-      foreach ($info as $k => $v) {
-        $newValue = isset($rec[$k]) ? $rec[$k] : a\formatField($k, interpretV($a->$k));
-///        if (is_array($v)) $v = print_r($v, 1);
-//        while (substr($v, strlen(CRYPT_FLAG)) == CRYPT_FLAG) $v = u\decryptM($v); // u\starts fails here (when encrypted?)
-        $rec[$k] = $oldValue = a\formatField($k, interpretV($v));
-        $list[] = "<tr><td>$date</td><td>$k</td><td>$oldValue</td><td>$newValue</td></tr>";
-      }
-    }
-  } else $list[] = '<tr><td colspan=4>No changes</td></tr>';
-  
-  $list = join("\n", $list);
-  $list = item("<table>$list</table>");
+  $sql = 'SELECT h.created, field, oldValue, newValue, changedBy, u.name AS changerName FROM r_changes h LEFT JOIN users u ON h.changedBy=u.uid WHERE h.uid=:id ORDER BY created';
+  $q = db\q($sql, ray('id', $a->id));
+  while ($row = $q->fetchAssoc()) {
+    extract($row);
+    $date = u\fmtDate($created);
+		foreach (ray('oldValue newValue') as $k) $$k = a\formatField($field, ($type = u\crypted($$k)) ? decryChange($type, $$k) : $$k);
+    $changedBy = $changerName ?: "($changedBy)";
+    $list[] = "<tr><td>$date</td><td>$field</td><td>$oldValue</td><td>$newValue</td><td>$changedBy</td></tr>";
+  }
+	
+	if (count($list) > 1) {
+		$list = join("\n", $list);
+    $list = item("<table>$list</table>");
+	} else $list = t('No changes');
   
   return cgform(compact(ray('title list')));
 }
 
-function interpretV($v) {return u\crypted('V', $v . '') ? (r\allKnowing() ? u\decry('V', $v) : t('(secret)')) : $v;}
+function decryChange($type, $v) {return ($type == 'V' and !r\allKnowing()) ? t('(secret)') : u\decry($type, $v);}
 
 /**
  * Log back in to admin automatically.
@@ -555,7 +557,7 @@ function formDownloadMemberList_submit($form, &$sta) {
  */
 function formPhp($form, &$sta, $res = '') {
   $res = item($res);
-  $code = areaFld('', '', dft(\variable_get('code')));
+  $code = areaFld('', '', dft(getV('code')));
   $submit = t('Execute Code');
   return cgform(compact('res', 'code', 'submit'), '', FALSE);
 }
@@ -565,7 +567,7 @@ function formPhp($form, &$sta, $res = '') {
  */
 function formPhp_submit($form, &$sta) {
   extract(just('code', $sta['input']));
-  \variable_set('code', $code); // remember for next time
+  \setV('code', $code); // remember for next time
   $code = <<<EOF
 use CG as r;
 use CG\DB as db;

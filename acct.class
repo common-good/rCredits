@@ -111,7 +111,7 @@ class Acct {
     if ($error = u\EXPECT(compact(ray('id0 agent0')), 'zid|qid|assoc empty|id|qid', $test)) return FALSE;
     if ($error = u\EXPECT((bool) $id0, 'null uid in new r\Acct()', $test)) return FALSE;
 //    if ($error = u\EXPECT(!(strpos($id0, R_AGENT_MARK) and $agent0), 'agent already specified in qid', $test)) return FALSE;
-    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id00)->ia; // handle
+    list ($id, $agent) = u\isZid($id0) ? [$id0, $agent0 ?: $id0] : r\qo($id00, $agent0)->ia; // handle
 
     if (u\isQid($agent0)) {
       list ($agent, $zot) = r\qo($agent0)->ia;
@@ -165,8 +165,8 @@ class Acct {
       $field = substr($field, 2);
       return $a->o($field) . ($a->jid ? ' & ' . $a->jA->o($field) : '');
     } else { // tests for field must precede tests for jid or slave (else loop)
-      if (in($field, JOINT_FIELDS) and $a->jid) return round($a->o($field) + $a->jA->o($field), 2); // sum joint fields
-      if (in($field, MASTER_FIELDS) and $a->slave) return $a->jA->o($field); // master only
+      if (in($field, JOINT_FLDS) and $a->jid) return round($a->o($field) + $a->jA->o($field), 2); // sum joint fields
+      if (in($field, MASTER_FLDS) and $a->slave) return $a->jA->o($field); // master only
     }
 
     // From here down, everything should be for "own" account
@@ -178,8 +178,10 @@ class Acct {
     
     if ($field == 'mainQid') return $a->qo->mainQid;
     if ($field == 'isAdmin2') return (bool) ($a->agentA->flags & u\bit(B_ADMIN2)); // not ->can() included by cAdmin etc. (see note in can())
-    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decry('P', $a->mail);
-    if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decry('P', $ph);
+//    if ($field == 'email') return strpos($a->mail, '@') ? $a->mail : u\decry('P', $a->mail);
+//    if ($field == 'phone') return u\starts($ph = @self::$rs[$a->id]->phone, '+') ? $ph : u\decry('P', $ph);
+    if ($field == 'email') return u\decryIf('P', @self::$rs[$a->id]->email);
+    if ($field == 'phone') return u\decryIf('P', @self::$rs[$a->id]->phone);
     if ($field == 'phoneDash') return u\fmtPhone($a->phone, '-');
     if ($field == 'st') return r\realState($a->state, $a->country);
     if ($field == 'agentA') return r\acct($a->agentId);
@@ -221,8 +223,14 @@ class Acct {
     if ($nick == 'raw') return $result;
     if ($field == 'hasPhoto') return db\exists('r_photos', 'uid=:id', ['id' => $a->id]);
     if ($field == 'photo') return ($result = db\get('photo', 'r_photos', 'uid=:id', ['id' => $a->id])) ? u\decry('H', $result) : '';
-    
-    if (in($field, 'data changes secure vsecure') and !is_array($result)) { // special not yet arrayed
+    if ($field == 'changes') {
+      $rows = db\records('*', 'r_changes', 'uid=:id', ['id' => $a->id]);
+      foreach ($rows as $i => $row) {
+			  foreach (ray('oldValue newValue') as $k) if ($type = u\crypted($row->$k)) $rows[$i]->$k = u\decry($type, $row->$k);
+		  }
+			return $rows;
+    }
+    if (in($field, 'data secure vsecure') and !is_array($result)) { // special not yet arrayed
       if (!$result) return [];
       if ($field != 'data') $result = u\decry('S', $result);
       return (self::$rs[$a->id]->$field = unserialize($result));
@@ -240,8 +248,8 @@ class Acct {
       $field = lcfirst(substr($field, 3));
       return $nick;
     }
-    if (in($field, REL_FIELDS . ' ' . REL_FLAGS)) return 'rel';
-    if (in($field, CO_FIELDS)) return 'coy';
+    if (in($field, REL_FLDS . ' ' . REL_FLAGS)) return 'rel';
+    if (in($field, CO_FLDS)) return 'coy';
     if (in($field, B_LIST . ' ' . B_CTTY_BITS)) return 'can';
     return $nick;
   }
@@ -273,7 +281,7 @@ class Acct {
    * @return <at least one of $fields is in the $specialType list>
    */
   private function special($fields, $specialType) {
-    $specials = constant("R_{$specialType}_FIELDS");
+    $specials = constant("{$specialType}_FLDS");
     return is_array($fields) ? (bool) array_intersect($fields, ray($specials))
     : (strpos($fields, ' ') === FALSE ? u\inList($fields, $specials) // be efficient, if just one field
     : (bool) array_intersect(ray($fields), ray($specials)));
@@ -395,7 +403,7 @@ class Acct {
   private function jGet($field) {
     $a = $this;
     if (!$jid = $a->jid) return $a->$field;
-    if (in_array($field, ray(MASTER_FIELDS))) return $a->masterA->$field;
+    if (in_array($field, ray(MASTER_FLDS))) return $a->masterA->$field;
     $j = u\nn(r\acct($jid)->$field, 0); // use 0 if other value is null
     return is_numeric($j) ? round($j + $a->$field, 2) : ($a->$field . " & $j"); // assume $ for numeric fields
   }*/
@@ -461,19 +469,19 @@ class Acct {
     if (!is_array($info)) $info = rayy(func_get_args());
     
     u\EXPECT(!isset($info['savings']), 'archaic savings field');
-//    if ($jid = $a->jid and $jInfo = just(MASTER_FIELDS . ' savings', $info)) {
-    if ($a->jid and $jInfo = just(MASTER_FIELDS, $info)) {
+//    if ($jid = $a->jid and $jInfo = just(MASTER_FLDS . ' savings', $info)) {
+    if ($a->jid and $jInfo = just(MASTER_FLDS, $info)) {
       list ($a2, $a1) = u\order($a->slave, $a, $a->jA); // set $a1 master, $a2 slave
 
-      $jInfo2 = array_fill_keys(ray(MASTER_FIELDS), 0);
+      $jInfo2 = array_fill_keys(ray(MASTER_FLDS), 0);
       unset($jInfo2['achMin']); // no change to slave achMin
       $a2->update1($jInfo2);
       
-//      $a2->update1(MASTER_FIELDS, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
+//      $a2->update1(MASTER_FLDS, FALSE, '', '', FALSE, @$jInfo['achMin'] ?: $a1->achMin, 0, 0, 0); // not much for slave
 //      $a->updateSavings($jInfo, $a1 == $a ? $a2->rewards : $a1->rewards); // update savings in master
       $a1->update1($jInfo);
-//      if (!$info = justNOT(MASTER_FIELDS . ' savings', $info)) return TRUE; // fall through if something else to update
-      if (!$info = justNOT(MASTER_FIELDS, $info)) return TRUE; // fall through if something else to update
+//      if (!$info = justNOT(MASTER_FLDS . ' savings', $info)) return TRUE; // fall through if something else to update
+      if (!$info = justNOT(MASTER_FLDS, $info)) return TRUE; // fall through if something else to update
     }
 //    } else $a->updateSavings($info, 0); // update savings in proSe account
     return $a->update1($info);
@@ -501,10 +509,11 @@ class Acct {
     if (!is_array($info)) $info = rayy(func_get_args());
 
     foreach ($bits = just(B_LIST, $info) as $k => $v) {$a->setBit($k, $v); unset($info[$k]);}
-    foreach (just(REL_FIELDS . ' ' . REL_FLAGS, $info) as $k => $v) {$a->setRel($k, $v); unset($info[$k]);}
-    if ($coFlds = just(CO_FIELDS, $info)) {$a->setCo($coFlds); $info = justNOT(CO_FIELDS, $info);}
+    foreach (just(REL_FLDS . ' ' . REL_FLAGS, $info) as $k => $v) {$a->setRel($k, $v); unset($info[$k]);}
+    if ($coFlds = just(CO_FLDS, $info)) {$a->setCo($coFlds); $info = justNOT(CO_FLDS, $info);}
 
-    if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+//    if ($a->ok) $info += $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is active
+    if ($a->activated) $a->recordChanges(justNOT(B_LIST, $info)); // record changes if member is (or was) active
     foreach (just('hasBank', $info) as $k => $v) {$a->setRisk($k, $v); unset($info[$k]);}
 
     if (isset($info['photo'])) {
@@ -513,19 +522,19 @@ class Acct {
       } else db\q('DELETE FROM r_photos WHERE uid=:uid', ['uid' => $a->id]);
       unset($info['photo']);
     }
-    if (isset($info['email'])) $info['mail'] = u\cry('P', $info['email']);
-    if (isset($info['phone'])) $info['phone'] = u\cry('P', $info['phone']);
+    foreach (ray(PSECURE_FLDS) as $k) if (isset($info[$k])) $info[$k] = u\cry('P', $info[$k]);
+//    if (isset($info['phone'])) $info['phone'] = u\cry('P', $info['phone']);
     if (isset($info['pass']) and $info['pass'] !== '') $info['pass'] = r\passHash($info['pass']);
     u\preray($info, self::$rs[$a->id]); // cache the new field values (before doing special fields)
     
     foreach (ray('data secure vsecure') as $special) {
       if (isset($info[$special])) {
         $sFlds = $info[$special]; // can be '' for no data
-      } elseif ($sFlds = just(constant('R_' . strtoupper($special) . '_FIELDS'), $info)) {
+      } elseif ($sFlds = just(constant(strtoupper($special) . '_FLDS'), $info)) {
         $sFlds += $a->$special;
       } else continue;
       if ($special == 'vsecure' and $a->activated and $sFlds) foreach ($sFlds as $k => $v) {
-        if (!u\crypted('V', $v)) $sFlds[$k] = u\cry('V', $v); // hyper-encrypt when activated (when auto-access to EIN no longer needed). This is the ONLY place we do u\cry('V', ) !!
+        if (!u\crypted('V', $v)) $sFlds[$k] = u\cry('V', $v); // hyper-encrypt when activated (when auto-access to EIN no longer needed). This and recordChanges are the ONLY places we do u\cry('V', ) !!
       }
       self::$rs[$a->id]->$special = $sFlds;
       $sFlds = serialize($sFlds);
@@ -534,54 +543,86 @@ class Acct {
 /*    
     if (isset($info['data'])) {
       $info['data'] = serialize($info['data']);
-    } elseif ($data = just(R_DATA_FIELDS, $info)) $info['data'] = serialize($data += $a->data);
+    } elseif ($data = just(DATA_FLDS, $info)) $info['data'] = serialize($data += $a->data);
 
-    if (($set = isset($info['secure'])) or $sFlds = just(R_SECURE_FIELDS, $info)) { // serialize and encrypt
+    if (($set = isset($info['secure'])) or $sFlds = just(SECURE_FLDS, $info)) { // serialize and encrypt
 //  			if ($v = @$sFlds['ssnData']) $sFlds['ssnData'] = serialize($v);
       $sec = $set ? ($info['secure'] ?: []) : ($sFlds + ($a->secure ?: []));
       $info['secure'] = u\cry('S', serialize($sec));
     }
 
-    if (($set = isset($info['vsecure'])) or $sFlds = just(R_VSECURE_FIELDS, $info)) { // serialize and encrypt
+    if (($set = isset($info['vsecure'])) or $sFlds = just(VSECURE_FLDS, $info)) { // serialize and encrypt
       $vsec = $set ? ($info['vsecure'] ?: []) : ($sFlds + ($a->vsecure ?: []));
 			if ($a->activated) foreach ($sFlds as $k => $v) $vsec[$k] = u\cry('V', $v); // hyper-encrypt when activated 
       $info['vsecure'] = u\cry('S', serialize($vsec));
     }
 	*/	
 
-    $info = justNOT(R_SECURE_FIELDS . ' ' . R_VSECURE_FIELDS . ' email ' . R_DATA_FIELDS, $info); // don't pass these
+    $info = justNOT(SECURE_FLDS . ' ' . VSECURE_FLDS . ' ' . DATA_FLDS, $info); // don't pass these
     return $info ? db\update('users', $info + ['uid' => $a->id], 'uid') : TRUE;
   }
 
   /**
    * Record memorable changes being made to an account record.
    * @param assoc $info: all changes being made
-   * @return the changes
    */
   private function recordChanges($info) {
     $a = $this;
     $newChanges = justNOT(R_HIDE_CHANGES, $info); // see if there are any changes to remember
-    foreach ($newChanges as $k => $v) { // don't record if no change
-      $ak = $a->$k;
-      if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) {
-        unset($newChanges[$k]);
-      } else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
+    foreach ($newChanges as $field => $v) {
+      $ak = $a->$field;
+      if ($v == $ak or (is_numeric($v) and is_numeric($ak) and $v + 0 == $ak + 0)) continue; // don't record if no change
+
+			$oldValue = $a->cryIf($field, '' . $a->$field, TRUE);
+			$newValue = $a->cryIf($field, '' . $v);
+			$record = ray('uid created field oldValue newValue changedBy', $a->uid, time(), $field, $oldValue, $newValue, $a->agentId);
+      db\insert('r_changes', $record); // add a r_changes record for each changed field
     }
-    
-    if (!$newChanges) return [];
-  
-    $changes = $a->changes; // must precede ->rawChanges
-//    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
-//    for ($k = r\rTime(); isset($changes[$k]); $k++);
-    $time = r\rTime();
-    if (isset($changes[$time])) {
-      $changes[$time] += $newChanges;
-    } else u\preray([$time => $newChanges], $changes); // put the new changes first
-    $changes = serialize($changes);
-//    if ($encrypted or just(R_SECURE_FIELDS, $newChanges)) 
-		$changes = u\cry('S', $changes);
-    return compact('changes');
   }
+
+    
+//        unset($newChanges[$k]);
+//      } // else $newChanges[$k] = $ak; // @self::$rs[$a->id]->$k;
+//    }
+    
+//    if (!$newChanges) return [];
+  
+//     $changes = $a->changes; // must precede ->rawChanges
+// //    $encrypted = u\starts($a->rawChanges, CRYPT_FLAG);
+// //    for ($k = r\rTime(); isset($changes[$k]); $k++);
+//     $time = r\rTime();
+//     if (isset($changes[$time])) {
+//       $changes[$time] += $newChanges;
+//     } else u\preray([$time => $newChanges], $changes); // put the new changes first
+//     $changes = serialize($changes);
+// //    if ($encrypted or just(SECURE_FLDS, $newChanges)) 
+// 		$changes = u\cry('S', $changes);
+
+//    foreach ($newChanges as $k => $v) {  // add a r_changes record for each changed field
+/*      $record = [ 'uid' => $a->uid,
+                  'created' => r\rTime(),
+                  'field' => $k,
+                  'oldValue' => u\cry('S', '' . $a->$k),
+                  'newValue' => u\cry('S', '' . $v),
+                  'changedBy' => $a->agentId ]; */
+    
+//    return compact('changes');
+	
+	/**
+	 * Encrypt if appropriate
+	 */
+	private function cryIf($k, $v, $old = FALSE) {
+		$a = $this;
+		foreach (ray('psecure vsecure secure') as $secure) {
+			list ($type, $flds) = [ucfirst($secure[0]), constant(strtoupper($secure) . '_FLDS')];
+			if (in($k, $flds)) {
+				if ($old and $type == 'V') $v = @$a->vsecure[$k]; // special case for possibly already-encrypted, inaccessible vsecure value
+				return u\crypted($type, $v) ? $v : u\cry($type, $v);
+			}
+		}
+		return $v;
+	}
+		
   
 //  public function isNonprofit() {return (bool) ($this->coFlags & u\bit(CO_NONPROFIT));}
   
@@ -645,13 +686,12 @@ class Acct {
   public function badOldProof($proof, $wanted, $created) {
     $a = $this;
     $codeName = $a->proSe ? 'cardCode' : 'cardCode2';
-    $code = $a->$codeName;
-    $changes = $a->agentA->changes;
-    
-    foreach ($changes as $tm => $v) {
-      if ($tm < $created) break;
-      if ($oldCode = @$v[$codeName] and u\hash(str_replace($code, $oldCode, $wanted)) == $proof) return false;
-    }
+    $code = $a->agentA->$codeName;
+//    $changes = $a->agentA->changes;
+    $changes = db\records('*', 'r_changes', 'uid=:id AND field=:fld AND created>:dt', ray('id fld dt', $a->agentId, $codeName,$created));
+
+    foreach ($changes as $ch) if (u\hash(str_replace($code, u\decry('S', $ch->oldValue), $wanted)) == $proof) return false;
+
     return true;
   }
 
@@ -914,7 +954,7 @@ EOF;
    */
   function join($b) {
     $a = $this;
-    $fields = ray(MASTER_NUMERIC_FIELDS);
+    $fields = ray(MASTER_NUMERIC_FLDS);
 
     $DBTX = \db_transaction();
     foreach ([$a, $b] as $i => $ai) {
@@ -1287,7 +1327,7 @@ EOF;
 		$okNow = ($amount < 0 or $a->bankOk); // "okay to create the request NOW"
 		if (!$okNow) $a->verifyBank();
     u\setDft($created, $okNow ? NOW : NOW + DAY_SECS);
-    u\setDft($completed, $a->bankOk ? $created : 0);
+    u\setDft($completed, ($amount < 0 or $a->bankOk) ? $created : 0);
 
     $DBTX = \db_transaction();
 
@@ -1340,6 +1380,7 @@ EOF;
 	 */
   public function verifyBank($channel = TX_SYS, $amount = 0) {
 		list ($bankAccount, $payee) = [@$this->vsecure['bankAccount'], $this->id];
+		if (db\exists('r_usd', compact(ray('amount payee bankAccount')))) return; // already being verified
 		for ($txid = 1; $txid < 999999; $txid++) { // actual transfers start sometime after 999,999
 			if (db\exists('r_usd', 'txid=:txid', compact('txid'))) continue;
 			if ($txid = db\insert('r_usd', compact(ray('txid amount payee bankAccount channel')))) break;
@@ -1700,7 +1741,7 @@ X;
 		$a = $this;
     if (!$vKey = u\unfmtKey($vKey) and !$vKey = r\vKey()) return t('No private key given or available.');
 		$a->update('vKeyPw', $vKeyPw = openssl_random_pseudo_bytes(32));
-    if (isDEV) \variable_set('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
+    if (isDEV) \setV('vKeyPw', $vKeyPw); // otherwise this gets lost during testing
 		$vKeyE = u\cry('R', $vKey, FALSE, $vKeyPw);
 ///		debug('pwLen=' . strlen($vKeyPw) . ' vkELen=' . strlen($vKeyE));
 //	  r\setCryptCook('vKeyE', $vKeyE); // NO! (admin should sign out after calling with $vKey arg, to test it)
@@ -1856,7 +1897,7 @@ function acct($uid = '', $agent = '', &$error = '') {
   global $mya; // use this ONLY in this class file
   if (!$uid) return $mya ?: (!$error = 'There is no current account.');
   if (strpos($uid, '@')) {
-    $uid = db\get('uid', 'users', 'mail=:mail ORDER BY :IS_CO', ['mail' => u\cry('P', $uid)]);
+    $uid = db\get('uid', 'users', 'email=:email ORDER BY :IS_CO', ['email' => u\cry('P', $uid)]);
   } elseif (FALSE and preg_match('/[0-9]( |-|\\)) ?[0-9]{4}/', $uid)) {
     $uid = db\get('uid', 'users', 'phone=:phone ORDER BY :IS_CO', ['phone' => u\cry('P', u\fmtPhone($uid, '+n'))]);
   }

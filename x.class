@@ -10,7 +10,7 @@ use CG\Util as u;
  * rCredits Transaction class (and extension MyX, which looks at the transaction from one party's view)
  */
 
-define('TX_FIELDS', 'serial type amount goods payer payee payerAgent payeeAgent for flags created');
+define('TX_FLDS', 'serial type amount goods payer payee payerAgent payeeAgent for flags created');
  
 class X {
   var $ray0; // an assoc of all the transaction's fields (including the data field, still serialized)
@@ -57,7 +57,7 @@ class X {
   private function createNew($info, $save) {
     extract($info);
     if (@$data and !is_array($data)) $data = unserialize($data);
-    if ($data2 = just(TX_DATA_FIELDS, $info)) foreach ($data2 as $k => $zot) unset($info[$k]);
+    if ($data2 = just(TX_DATA_FLDS, $info)) foreach ($data2 as $k => $zot) unset($info[$k]);
     $info['data'] = (@$data ?: []) + (@$data2 ?: []);
     $xray = $this->setup($info);
     if (!$save) return $xray;
@@ -109,7 +109,7 @@ class X {
     if ($amount = @$data['xfee']) {
       list ($type, $goods, $payerAgent, $payeeAgent, $taking) = array(TX_XFEE, FOR_USD, $payer, $payee, TRUE);
       $for = ($amount == R_XFEE_CHECK and !strpos($payeeFor, BY_CARD)) ? t('check fee') : t('card fee');
-      if ($xray = $this->save($this->setup(compact(ray(TX_FIELDS))))) {
+      if ($xray = $this->save($this->setup(compact(ray(TX_FLDS))))) {
         $xrays[] = $xray;
       } else return FALSE;
     }
@@ -118,7 +118,7 @@ class X {
       list ($goods, $payerAgent, $payeeAgent, $taking) = array(FOR_USD, $payer, $payee, TRUE);
       $for = t('discount rebate (on #%tid)');
       $for = [tr($for, 'tid', $payerTid), tr($for, 'tid', $payeeTid)];
-      if ($xray = $this->save($this->setup(compact(ray(TX_FIELDS))))) {
+      if ($xray = $this->save($this->setup(compact(ray(TX_FLDS))))) {
         $xrays[] = $xray;
       } else return FALSE;
     }
@@ -132,7 +132,7 @@ class X {
     $payeeAgent = $payee;
     $goods = FOR_USD; // not actually for USD, but certainly not for goods or non-goods, since not an exchange
 
-    return $this->setup(compact(ray(TX_FIELDS)));
+    return $this->setup(compact(ray(TX_FLDS)));
   }
 */
 
@@ -298,7 +298,7 @@ class X {
 
     if (isset($info['data'])) { // allow setting data to empty
       $info['data'] = ($data = $info['data']) ? serialize($data) : '';
-    } elseif ($data = just(TX_DATA_FIELDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
+    } elseif ($data = just(TX_DATA_FLDS, $info)) $info['data'] = serialize($data + ($x->data ?: []));
 
     if ($flagFields = just(TX_FLAGS, $info)) {
       $flags = isset($info['flags']) ? $info['flags'] : $x->flags;

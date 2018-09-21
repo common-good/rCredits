@@ -40,6 +40,7 @@ function extraSetup($feature) {
 /**
  * members: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE bank Setup
  *     MAKE bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
  *     MAKE bank ANonmemberHasATargetAndRefills
@@ -56,6 +57,24 @@ function extraSetup($feature) {
  *     MAKE tickle Setup
  *     MAKE trust Setup
  *     MAKE weekly Setup
+=======
+ * in: MAKE Joint Setup
+ *     MAKE Notices Setup
+ *     MAKE Tickle Setup
+ *     MAKE Gifts Setup
+ *     MAKE Gifts ANonmemberChoosesADonation
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+ *     MAKE Bank Setup
+ *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank ANonmemberHasATargetAndRefills
+ *     MAKE Invoices Setup
+ *     MAKE Monthly Setup
+ *     MAKE Trust Setup
+ *     MAKE community-bits Setup
+ *     MAKE Recache Setup
+ *     MAKE Risk Setup
+ *     MAKE Weekly Setup
+>>>>>>> feature/attribute-member-record-changes
  */
 function members($list) {return t\members($list);}
 
@@ -63,6 +82,7 @@ function members($list) {return t\members($list);}
 /**
  * balances: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE bank AMemberIsBarelyBelowTarget
  *     MAKE bank AMemberHasANegativeBalance
  *     MAKE bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
@@ -90,12 +110,42 @@ function members($list) {return t\members($list);}
  *     TEST weekly AMemberCrawlsOutOfDebt
  *     TEST weekly AMemberBuildsUpSavings
  *     TEST weekly AMemberCashesOutAutomatically
+=======
+ * in: TEST Joint Setup
+ *     MAKE Joint AJointAccountNeedsRefilling
+ *     MAKE Joint AJointAccountDoesNotNeedRefilling
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Gifts Setup
+ *     MAKE Bank AMemberIsBarelyBelowTarget
+ *     MAKE Bank AMemberHasANegativeBalance
+ *     MAKE Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
+ *     MAKE Bank AnUnbankedMemberBarelyBelowTargetCannotDrawOnAnotherAccount
+ *     MAKE Bank AMemberIsAtTarget
+ *     MAKE Bank AMemberIsWellBelowTarget
+ *     MAKE Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
+ *     MAKE Bank AnUnbankedMemberWithZeroTargetHasBalanceBelowTarget
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     MAKE Bank AnAccountHasATargetButNoRefills
+ *     TEST Invoices Setup
+ *     BOTH Invoices UnpaidInvoicesGetHandled
+ *     TEST Monthly Setup
+ *     MAKE community-bits Setup
+ *     TEST Recache Setup
+ *     BOTH Recache BalancesGetOutOfWhack
+ *     MAKE Recache BalancesGetATinyBitOutOfWhack
+ *     TEST Weekly AMemberCrawlsOutOfDebt
+ *     TEST Weekly AMemberBuildsUpSavings
+ *     TEST Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function balances($list) {return t\balances($list);}
 
 /**
  * cron runs (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE bank AMemberIsBarelyBelowTarget
  *     MAKE bank AMemberHasANegativeBalance
  *     MAKE bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
@@ -140,12 +190,59 @@ function balances($list) {return t\balances($list);}
  *     MAKE weekly AMemberCrawlsOutOfDebt
  *     MAKE weekly AMemberBuildsUpSavings
  *     MAKE weekly AMemberCashesOutAutomatically
+=======
+ * in: MAKE Joint AJointAccountNeedsRefilling
+ *     MAKE Joint AJointAccountDoesNotNeedRefilling
+ *     MAKE Notices AMemberGetsSomeNotices
+ *     MAKE Notices AMemberGetsSomeWeeklyNotices
+ *     MAKE Tickle ANewbieHasNotTakenTheFirstStep
+ *     MAKE Tickle ANewbieHasTakenSomeStepsButNotAll
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
+ *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     MAKE Gifts ASecondRecurringDonationCanBeCompleted
+ *     MAKE Gifts ADonationInvoiceCanBeCompleted
+ *     MAKE Gifts ARecurringDonationCannotBeCompleted
+ *     MAKE Gifts ANonmemberChoosesADonation
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+ *     MAKE Bank AMemberIsBarelyBelowTarget
+ *     MAKE Bank AMemberHasANegativeBalance
+ *     MAKE Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
+ *     MAKE Bank AnUnbankedMemberBarelyBelowTargetCannotDrawOnAnotherAccount
+ *     MAKE Bank AMemberIsAtTarget
+ *     MAKE Bank AMemberIsWellBelowTarget
+ *     MAKE Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     MAKE Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
+ *     MAKE Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
+ *     MAKE Bank AnUnbankedMemberWithZeroTargetHasBalanceBelowTarget
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     MAKE Bank AnAccountHasATargetButNoRefills
+ *     MAKE Bank ANonmemberHasATargetAndRefills
+ *     MAKE Bank MembersBankAccountHasNotBeenVerified
+ *     MAKE Bank AMembersBankAccountGetsVerified
+ *     MAKE Invoices UnpaidInvoicesGetHandled
+ *     MAKE Invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
+ *     MAKE Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
+ *     MAKE Trust WeCalculateTrust
+ *     MAKE community-bits CommunityBansSpendingBelowZero
+ *     MAKE Recache BalancesGetOutOfWhack
+ *     MAKE Recache BalancesGetATinyBitOutOfWhack
+ *     MAKE Risk Setup
+ *     MAKE Risk WeCalculateRisks
+ *     MAKE Weekly AMemberCrawlsOutOfDebt
+ *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function cronRuns($op) {return t\cronRuns($op);}
 
 /**
  * usd transfers: (ARG)
  *
+<<<<<<< HEAD
  * in: TEST bank AMemberIsBarelyBelowTarget
  *     TEST bank AMemberHasANegativeBalance
  *     TEST bank AMemberIsWellBelowTarget
@@ -162,12 +259,31 @@ function cronRuns($op) {return t\cronRuns($op);}
  *     MAKE risk Setup
  *     TEST risk WeCalculateRisks
  *     TEST weekly AMemberCashesOutAutomatically
+=======
+ * in: TEST Joint AJointAccountNeedsRefilling
+ *     TEST Bank AMemberIsBarelyBelowTarget
+ *     TEST Bank AMemberHasANegativeBalance
+ *     TEST Bank AMemberIsWellBelowTarget
+ *     TEST Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     TEST Bank AMemberIsUnderTargetAndHasRequestedInsufficientFundsFromTheBank
+ *     TEST Bank AMemberMemberWithZeroTargetHasBalanceBelowTarget
+ *     MAKE Bank AMemberHasADepositedButNotCompletedTransfer
+ *     TEST Bank ANonmemberHasATargetAndRefills
+ *     TEST Bank MembersBankAccountHasNotBeenVerified
+ *     MAKE Bank AMembersBankAccountGetsVerified
+ *     TEST Invoices UnpaidInvoicesGetHandled
+ *     MAKE Monthly Setup
+ *     MAKE Risk Setup
+ *     TEST Risk WeCalculateRisks
+ *     TEST Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function usdTransfers($tx) {return t\usdTransfers($tx);}
 
 /**
  * bank transfer count is (ARG)
  *
+<<<<<<< HEAD
  * in: TEST bank AMemberIsBarelyBelowTarget
  *     TEST bank AMemberIsAtTarget
  *     TEST bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
@@ -175,16 +291,32 @@ function usdTransfers($tx) {return t\usdTransfers($tx);}
  *     TEST bank AMemberHasADepositedButNotCompletedTransfer
  *     TEST bank AnAccountHasATargetButNoRefills
  *     TEST joint AJointAccountDoesNotNeedRefilling
+=======
+ * in: TEST Joint AJointAccountDoesNotNeedRefilling
+ *     TEST Bank AMemberIsBarelyBelowTarget
+ *     TEST Bank AMemberIsAtTarget
+ *     TEST Bank AMemberIsUnderTargetButAlreadyRequestedBarelyEnoughFundsFromTheBank
+ *     TEST Bank AnUnbankedMemberWithZeroTargetHasBalanceBelowTarget
+ *     TEST Bank AMemberHasADepositedButNotCompletedTransfer
+ *     TEST Bank AnAccountHasATargetButNoRefills
+>>>>>>> feature/attribute-member-record-changes
  */
 function bankTransferCountIs($count) {return (t\usdTransferCount() == $count);}
 
 /**
  * relations: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE bank Setup
  *     MAKE invoices Setup
  *     MAKE joint Setup
  *     MAKE risk Setup
+=======
+ * in: MAKE Joint Setup
+ *     MAKE Bank Setup
+ *     MAKE Invoices Setup
+ *     MAKE Risk Setup
+>>>>>>> feature/attribute-member-record-changes
  */
 function relations($relations) {return t\relations($relations);}
 
@@ -192,6 +324,7 @@ function relations($relations) {return t\relations($relations);}
 /**
  * transactions: (ARG)
  *
+<<<<<<< HEAD
  * in: TEST bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
  *     TEST gifts ABrandNewRecurringDonationCanBeCompleted
  *     BOTH gifts ASecondRecurringDonationCanBeCompleted
@@ -207,12 +340,30 @@ function relations($relations) {return t\relations($relations);}
  *     TEST risk WeCalculateRisks
  *     MAKE tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
  *     MAKE weekly AMemberCashesOutAutomatically
+=======
+ * in: MAKE Joint Setup
+ *     MAKE Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     BOTH Gifts ASecondRecurringDonationCanBeCompleted
+ *     TEST Gifts ADonationInvoiceCanBeCompleted
+ *     MAKE Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+ *     TEST Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
+ *     MAKE Invoices Setup
+ *     TEST Invoices UnpaidInvoicesGetHandled
+ *     MAKE Monthly Setup
+ *     TEST Monthly InflationAdjustmentsRoundUpDonationsAndCrumbDonationsAreMade
+ *     MAKE Recache Setup
+ *     MAKE Risk Setup
+ *     TEST Risk WeCalculateRisks
+ *     MAKE Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function transactions($list) {return t\transactions($list);}
 
 /**
  * we notice (ARG) to member (ARG) with subs: (ARG)
  *
+<<<<<<< HEAD
  * in: TEST bank AMemberIsBarelyBelowTarget
  *     TEST bank AMemberHasANegativeBalance
  *     TEST bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
@@ -224,6 +375,19 @@ function transactions($list) {return t\transactions($list);}
  *     TEST tickle ANewbieHasNotTakenTheFirstStep
  *     TEST tickle ANonmemberHasNotAcceptedTheInvitation
  *     TEST weekly AMemberCashesOutAutomatically
+=======
+ * in: TEST Joint AJointAccountNeedsRefilling
+ *     TEST Tickle ANewbieHasNotTakenTheFirstStep
+ *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     TEST Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     TEST Bank AMemberIsBarelyBelowTarget
+ *     TEST Bank AMemberHasANegativeBalance
+ *     TEST Bank AnUnbankedMemberBarelyBelowTargetDrawsOnAnotherAccount
+ *     TEST Bank AnUnbankedMemberBarelyBelowTargetCannotDrawOnAnotherAccount
+ *     TEST Bank AMemberIsWellBelowTarget
+ *     TEST Invoices UnpaidInvoicesGetHandled
+ *     TEST Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
 
@@ -254,7 +418,11 @@ function weTellAdminWithSubs($topic, $subs) {return t\weTellAdmin($topic, $subs)
 /**
  * we tell (ARG) CO (ARG) with subs: (ARG)
  *
+<<<<<<< HEAD
  * in: TEST communitybits CommunityBansSpendingBelowZero
+=======
+ * in: TEST community-bits CommunityBansSpendingBelowZero
+>>>>>>> feature/attribute-member-record-changes
  */
 function weTellCOWithSubs($id, $topic, $subs) {return t\weTellAdmin($topic, $subs, t\uid($id));}
 
@@ -269,10 +437,17 @@ function notices($list) {return t\notices($list);}
 /**
  * we email (ARG) to member (ARG) with subs: (ARG)
  *
+<<<<<<< HEAD
  * in: TEST gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
  *     TEST notices AMemberGetsSomeNotices
  *     TEST notices AMemberGetsSomeWeeklyNotices
  *     TEST tickle ANonmemberHasNotAcceptedTheInvitation
+=======
+ * in: TEST Notices AMemberGetsSomeNotices
+ *     TEST Notices AMemberGetsSomeWeeklyNotices
+ *     TEST Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     TEST Gifts ItsTimeToWarnAboutAnUpcomingAnnualDonation
+>>>>>>> feature/attribute-member-record-changes
  */
 function weEmailToMemberWithSubs($key, $email, $subs) {return t\findEmail($key, $email, $subs);}
 
@@ -360,6 +535,7 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
 /**
  * members have: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE bank AnAccountHasATargetButNoRefills
  *     MAKE bank MembersBankAccountHasNotBeenVerified
  *     BOTH bank AMembersBankAccountGetsVerified
@@ -370,6 +546,18 @@ function weMessageMemberWithTopicAndSubs($id, $topic, $subs) {
  *     TEST trust WeCalculateTrust
  *     MAKE weekly AMemberBuildsUpSavings
  *     MAKE weekly AMemberCashesOutAutomatically
+=======
+ * in: BOTH Tickle AMemberGetsNoNewCreditLineBecauseTheChangeWouldBeMinimal
+ *     MAKE Bank AnAccountHasATargetButNoRefills
+ *     MAKE Bank MembersBankAccountHasNotBeenVerified
+ *     BOTH Bank AMembersBankAccountGetsVerified
+ *     TEST Trust WeCalculateTrust
+ *     MAKE community-bits CommunityBansSpendingBelowZero
+ *     TEST Risk Setup
+ *     TEST Risk WeCalculateRisks
+ *     MAKE Weekly AMemberBuildsUpSavings
+ *     MAKE Weekly AMemberCashesOutAutomatically
+>>>>>>> feature/attribute-member-record-changes
  */
 function membersHave($list) {return t\membersHave($list);}
 
@@ -391,12 +579,21 @@ function memberHasDoneStep($id, $step) {return t\doneStep($id, $step);}
 /**
  * invites: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE risk Setup
  *     MAKE tickle ANewbieHasNotTakenTheFirstStep
  *     MAKE tickle ANonmemberHasNotAcceptedTheInvitation
  *     MAKE tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
  *     MAKE tickle ANonmemberHasAcceptedTheInvitation
  *     MAKE tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+=======
+ * in: MAKE Tickle ANewbieHasNotTakenTheFirstStep
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasNotAcceptedTheInvitationFromANotyetactiveMember
+ *     MAKE Tickle ANonmemberHasAcceptedTheInvitation
+ *     MAKE Tickle ANonmemberHasAcceptedAnInvitationFromSomeoneElseInstead
+ *     MAKE Risk Setup
+>>>>>>> feature/attribute-member-record-changes
  */
 function invites($list) {return t\invites($list);}
 
@@ -421,8 +618,13 @@ function itsTimeFor($what) {
 /**
  * proxies: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE risk Setup
  *     MAKE trust Setup
+=======
+ * in: MAKE Trust Setup
+ *     MAKE Risk Setup
+>>>>>>> feature/attribute-member-record-changes
  */
 function proxies($list) {return t\proxies($list);}
 /**
@@ -525,7 +727,11 @@ function weMessageToMemberWithSubs($index, $id, $subs) {return t\weMessage($inde
 /**
  * stats: (ARG)
  *
+<<<<<<< HEAD
  * in: MAKE communitybits CommunityBansSpendingBelowZero
+=======
+ * in: MAKE community-bits CommunityBansSpendingBelowZero
+>>>>>>> feature/attribute-member-record-changes
  */
 function stats($list) {return t\stats($list);}
 
@@ -544,6 +750,7 @@ function these($thing, $list) {return t\these($thing, $list);}
 /**
  * count (ARG) is (ARG)
  *
+<<<<<<< HEAD
  * in: TEST bank ANonmemberHasATargetAndRefills
  *     TEST bank AMembersBankAccountGetsVerified
  *     TEST gifts ABrandNewRecurringDonationCanBeCompleted
@@ -551,6 +758,15 @@ function these($thing, $list) {return t\these($thing, $list);}
  *     TEST gifts ANonmemberChoosesADonation
  *     TEST invoices UnpaidInvoicesGetHandled
  *     TEST invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
+=======
+ * in: TEST Gifts ABrandNewRecurringDonationCanBeCompleted
+ *     TEST Gifts ARecurringDonationCannotBeCompleted
+ *     TEST Gifts ANonmemberChoosesADonation
+ *     TEST Bank ANonmemberHasATargetAndRefills
+ *     TEST Bank AMembersBankAccountGetsVerified
+ *     TEST Invoices UnpaidInvoicesGetHandled
+ *     TEST Invoices NonmemberUnpaidInvoiceDoesNotGenerateATransferRequest
+>>>>>>> feature/attribute-member-record-changes
  */
 function countIs($what, $count) {return t\count($what, $count);}
 

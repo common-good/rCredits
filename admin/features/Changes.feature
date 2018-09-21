@@ -9,11 +9,11 @@ SO I can request changes to software, that will enhance the experience of rCredi
 
 Setup:
   Given members:
-  | id   | fullName | address | city | state | flags    | minimum | achMin | saveWeekly | crumbs |*
-  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,ided  |     100 |     10 |          0 |   0.02 |
-  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,debt  |     200 |     20 |          0 |   0.05 |
-  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co    |     300 |     30 |          0 |   0.05 |
-  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin |     400 |     40 |          0 |   0.05 |
+  | id   | fullName | address | city | state | flags    | minimum | achMin | saveWeekly | crumbs | activated |*
+  | .ZZA | Abe One  | 1 A St. | Aton | MA    | ok,ided  |     100 |     10 |          0 |   0.02 | %today-2y |
+  | .ZZB | Bea Two  | 2 B St. | Bton | MA    | ok,debt  |     200 |     20 |          0 |   0.05 | %today-2y |
+  | .ZZC | Cor Pub  | 3 C St. | Cton | CA    | ok,co    |     300 |     30 |          0 |   0.05 | %today-2y |
+  | .ZZD | Dee Four | 4 D St. | Dton | DE    | ok,admin |     400 |     40 |          0 |   0.05 | %today-2y |
 
 Scenario: A member changes some settings
   Given member ".ZZA" completes form "settings/preferences" with values:
@@ -26,9 +26,12 @@ Scenario: A member changes some settings
   |       1 |     211870281 |         123 |          123 |       0 |       1 |    100 |     11 |          0 |
   When member ".ZZD" visits page "sadmin/changes/NEWZZA"
   Then we show "Account Changes for Abe One" with:
-  | Date | Field       | Old Value | New Value |
-  | %dmy | flags       |   ok ided | ok ided refill weekly paper |
-  | %dmy | crumbs      |      0.02 | 0.01 |
-  | %dmy | achMin      |        10 | 11 |
-  | %dmy | bankAccount |           | USkk211870281123 |    
+  | Date   | Field       | Old Value            | New Value                   | Changed by |
+  | %dmy | flags       | ok ided              | ok ided weekly              | abeone     |
+  | %dmy | flags       | ok ided weekly       | ok ided weekly paper        | abeone     |
+  | %dmy | crumbs      |                 0.02 |                        0.01 | abeone     |
+  | %dmy | flags       | ok ided weekly paper | ok ided refill weekly paper | abeone     |
+  | %dmy | achMin      |                   10 |                          11 | abeone     |
+  | %dmy | bankAccount |                      | (secret)                    | abeone     |
+#  | %dmy | bankAccount |                      | USkk211870281123            | abeone     | (this will work with member "D:1" when decry('V') works)
 #  | %dmy | flags   | member ok bona | member ok bona weekly debt |

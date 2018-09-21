@@ -212,7 +212,7 @@ function handleTx($do, $xid, &$sta, $args) {
       $deposit = $tx['deposit'] = NOW; // mark both done
       db\update('r_usd', compact(ray('txid deposit')), 'txid');
     }
-    $mya->bank($amount, t('to reverse failed transfer #%xid', compact('txid')), $tx);
+    $mya->bank($amount, t('to reverse failed transfer #%txid', compact('txid')), $tx);
     w\go($url, t('Reversed %amount bank transfer for %who.', 'amount who', u\fmtAmt(-$amount), $mya->fullName));
   }
   

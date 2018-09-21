@@ -451,7 +451,7 @@ EOF;
   return compact(ray('title subtext list'));
 }
 
-define('R_BASIC_FIELDS', 'fullName federalId dob');
+define('R_BASIC_FLDS', 'fullName federalId dob');
 
 /**
  * Validate the data that affects social security number verification.
@@ -459,7 +459,7 @@ define('R_BASIC_FIELDS', 'fullName federalId dob');
  * @param string/bool $co: is this a company account ('mya' means use the current account's type)
  *   'mya' also means we are retrying basic information (the AccountInfo step) during signup
  */
-function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FIELDS) {
+function formBasic_validate($form, &$sta, $co = 'mya', $fields = R_BASIC_FLDS) {
   extract(just($fields, $sta['input']));
   if ((string) $co == 'mya') {
     $mya = w\eLinkAcct($sta);

@@ -16,8 +16,8 @@ use CG\Web as w;
 
 global $base_path;
 define('BASE_PATH', $base_path);
-define('T_BALANCE_FIELDS', 'id balance floor rewards savingsAdd saveWeekly minimum');
-define('T_ID_FIELDS', 'id uid jid inviter invitee person proxy helper fromId payer payee from to fromAgent toAgent partner myid reid main agent other ctty');
+define('T_BALANCE_FLDS', 'id balance floor rewards savingsAdd saveWeekly minimum');
+define('T_ID_FLDS', 'id uid jid inviter invitee person proxy helper fromId payer payee from to fromAgent toAgent partner myid reid main agent other ctty');
 
 /**
  * Allow mnemonic and abbreviated data in test scenario columns.
@@ -54,7 +54,7 @@ function fixData(&$info, $direct = FALSE) {
     if (@$dob) $dob = strtotime(str_replace('/', '-', $dob));
   }
 
-  foreach (just(T_ID_FIELDS, $info) as $k => $v) {
+  foreach (just(T_ID_FLDS, $info) as $k => $v) {
     if (preg_match('/^(\.|[A-Z]{3})[A-Z]{3}$/', $v) or in($v, 'ctty cgf')) $info[$k] = t\uid($v) ?: 0;
   }
 	foreach (ray('from:payer,to:payee,fromAgent:payerAgent,toAgent:payeeAgent') as $k => $k2) if (isset($info[$k])) {
@@ -473,10 +473,10 @@ function doneStep($id, $step) {
  */
 function doMembersHave($info) {
   global $testOnly;
-  if ($balFields = just(T_BALANCE_FIELDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
+  if ($balFields = just(T_BALANCE_FLDS, $info) and !doBalance($balFields, TRUE)) return FALSE;
 
   $a = r\acct($id = t\uid($info['id']));
-  $info = justNOT(T_BALANCE_FIELDS, $info); // don't rehandle balance fields, and already got id
+  $info = justNOT(T_BALANCE_FLDS, $info); // don't rehandle balance fields, and already got id
   if (isset($info['risks'])) $info['risks'] = getRisks($info['risks'], K_ACCT_RISKS);
 //  fixData($info, TRUE);
   if ($testOnly) {
@@ -510,7 +510,7 @@ function memberFieldValues($list) {
 function doBalance($info) {
   global $testOnly;
 
-/**/  if ($info != just(T_BALANCE_FIELDS, $info)) return t\output("spurious field in balances: " . print_r($info, 1));
+/**/  if ($info != just(T_BALANCE_FLDS, $info)) return t\output("spurious field in balances: " . print_r($info, 1));
   $id = t\uid($id0 = $info['id']);
 
   if (!$a = r\acct($id)) return t\output("account $id0 does not exist");
@@ -593,12 +593,12 @@ function cronRuns($op) {
   include_once __DIR__ . '/rcron/rcron.inc';
   
   $now = r\rTime();
-  \variable_set('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
+  \setV('r_last_cron', ray('day week month', $now, $now, $now)); // normally don't run periodics
 
   if ($op == 'ALL') { //  or strpos(R_DAILY_TASKS, " $op ")
 /**/  if (strftime('%H') < R_DAILY_HOUR) die('Developer: For testing between midnight and :R_DAILY_HOUR:00, you need to temporarily change R_DAILY_HOUR in -settings.');
     db\q('TRUNCATE queue');
-    \variable_set('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));
+    \setV('r_last_cron', ray('day week month', $now - DAY_SECS, 0, 0));
   } elseif ($op) cr\doTask(compact('op'));
   cr\run();
   
@@ -807,7 +807,7 @@ function weShowWithSubs($page, $subs) {
   $subs = @$subs[0] ?: []; // comes in as "" if no subs
 
   if (strpos($page, 'confirm ') !== FALSE) {
-    foreach (just(R_DATE_FIELDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
+    foreach (just(R_DATE_FLDS, $subs) as $k => $v) if (is_numeric($v)) $subs[$k] = u\fmtDate($v);
     $wanted = t($page, $subs);
     t\output("<b>WANTED: </b>$wanted", 'screen');
     $res = ($wanted == $testConfirmation);
@@ -881,8 +881,9 @@ function fullQid2($agent) {
   if (strpos($agent, ':')) { // company:agent
     list ($cpy, $agt) = explode(':', $agent);
     $cpy = t\fullQid('.ZZ' . $cpy);
-    if (!is_numeric($agt)) $agt = t\fullQid('.ZZ' . $agt); // numeric agt actually fails anyway :(
-    return t\fullQid(r\qid($cpy, $agt));
+    $agt = is_numeric($agt) ? '' : t\fullQid('.ZZ' . $agt); // numeric agt actually fails anyway (fudge for superAdmin login -- agt=1)
+//    return t\fullQid(r\qid($cpy, $agt));
+    return r\qid($cpy, $agt);
   } elseif (strpos($agent, '#')) { // company#agentNum (deprecated)
     list ($cpy, $agt) = explode('#', $agent);
     $cpy = t\fullQid('.ZZ' . $cpy);
@@ -923,7 +924,8 @@ function addAttribs(&$thing) {
 function logIn($id) {
   global $boxUser;
   if ($id != '?') {
-    r\Acct::setDefault($a = r\acct(t\fullQid2($id))); // fullQid not uid
+		$agent = substr($id, -2) == ':1' ? 1 : ''; // fudge for logging in as superAdmin
+    r\Acct::setDefault($a = r\acct(t\fullQid2($id), $agent)); // fullQid2 not uid
     if (!u\isAcct($a)) return t\output("id not account: $id (" . t\fullQid2($id) . ')');
     $boxUser = r\Web\boxUser(r\Web\box(), $a->id);
   }
@@ -945,7 +947,7 @@ function verifyRecord($table, $info) {
   foreach ($info as $key => $value) {
     if ($value == '?') {unset($info[$key]); continue;}
     $crit[] = $value === '' ? "($key IS NULL or $key=:$key)"
-    : ((in($key, R_DATE_FIELDS) or stripos($key, 'date') !== FALSE) ? 
+    : ((in($key, R_DATE_FLDS) or stripos($key, 'date') !== FALSE) ? 
       "DATE(FROM_UNIXTIME($key))<=>DATE(FROM_UNIXTIME(:$key))" 
     : (in($key, 'trust risk') ? "CAST(ROUND($key, 2) AS CHAR)<=>:$key"
     : "$key<=>:$key")); // null-safe ==
@@ -1243,7 +1245,7 @@ function clear($ch = 0) {
 /**/ if (u\test() and !strpos($sceneTest->sceneName, 'Statement')) echo "scene: $sceneTest->sceneName<br>\n"; // helpful when test dies
 ///   file_put_contents(flog(), ''); // clear log file on disk
 
-  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_honors r_investments r_invites r_invoices r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_recurs r_request r_relations r_shares r_stats r_tous r_txs r_usd r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
+  $tables = 'r_bad r_ballots r_boxes r_stakes r_coupons r_coupated r_do r_honors r_investments r_invites r_invoices r_changes r_near r_notices r_options r_pairs r_proposals r_questions r_proxies r_ratings r_recurs r_request r_relations r_shares r_stats r_tous r_txs r_usd r_usd2 r_user_industries x_users x_relations x_invoices x_txs x_usd x_photos queue sessions cache';
   foreach (ray('bootstrap form menu') as $k) $tables .= " cache_$k";
   foreach (ray($tables) as $table) if (db\exists($table)) db\q("TRUNCATE $table");
 

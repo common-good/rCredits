@@ -11,6 +11,8 @@ use CG\Db as db;
  */
 function formSignin($form, &$sta) {
   global $base_url;
+	
+	if (isDEV) db\q('TRUNCATE sessions'); // this saves a lot of manual truncates when tests mess up
 
   extract(just('name pw2 vKeyE', @$sta['input']));
   if (!isset($name)) $name = @$_GET['name']; // allow links to signin (for example from app)

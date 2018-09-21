@@ -37,19 +37,22 @@ A. Development environment
    . production server (isPRODUCTION): keep an eye on results, but don't mess with it
  
 B. Coding strategies and style:
-  - Rule #1: Keep the code as short as possible without losing clarity.
+  - Rule #1: Keep the code as short as possible without losing clarity. Minimize the number of lines: Blank lines and "}" don't count.
+	    Comments at the end of a line don't count. Single line comments ("//") count as 1. Block comments ("/* ... */") count as 1.
   - In particular, avoid redundant code patterns, by creating small, low-level functions.
   - Make the tools easy to use -- that is, allow variations in number and type of arguments if that is convenient for the caller.
+	- One statement per line, except in rare cases where it's clearer not to.
   - Avoid high-level Drupal functions -- for example don't use Views, Fields, and complex modules. Eventually we expect to
-    drop Drupal, so avoid unnecessary dependency and entanglement.
-
+    drop Drupal, so avoid unnecessary dependency and entanglement. If you do use a Drupal function, precede it with backslash (\).
+	- Make the structure of the logic apparent by using short variable names and following convention (for example, use $k for a key, $v for a value, $i for in iterator, $a for an account, ...)
+	
     - Mostly follow generally-accepted coding practices (For example, all of Eclipse's defaults.)
   - Exceptions: 
     . Indent two spaces instead of one tab.
     . A simple if-then can go all on one line.
     . A simple else can immediately follow the closing brace of the if part. For example: } else zot();
-    . Simple, single-line functions can go all on one line, without a documentation header.
-  - Use camelCase for all internal variables and function names.
+    . Simple, single-statement functions can go all on one line, without a documentation header.
+  - Use camelCase for all internal variables, function names, and database table fields.
   - Use lowercase-and-hyphens for filenames and URLs.
   - Use lowercase_and_underscores only where necessary to keep Drupal happy.
 

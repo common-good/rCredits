@@ -67,7 +67,7 @@ function getTxRows($starting, $ending, $options = [], $url0 = '', &$run = '') {
     u\splice($totDone, 'amount', 1, ['frombank' => 0]);
     $totDone['date'] = '';
     $totDone['name'] = 'TOTALS';
-    foreach(just(TX_DOWNLOAD_MONEY_FIELDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
+    foreach(just(TX_DOWNLOAD_MONEY_FLDS, $totDone) as $key => $value) $totDone[$key] = round($value, 2);
     //if ($value === FALSE) $totDone[$key] = '-';
     if (!$mya->cttyRewardy) $totDone['reward'] = ''; // this is running balance when not rewards
     u\csv(array_values($totDone));
@@ -247,7 +247,7 @@ function addRow(&$tot, $row, $tx, $change, &$csvRow = '') {
 
   foreach ($row as $k => $v) $row[$k] = $v == R_NONE ? '' : strip_tags($v);
 //  if ($row['fromyou'] == $row['toyou']) $row['fromyou'] = $row['toyou'] = ''; // don't report gross on payex
-  foreach (ray(TX_DOWNLOAD_MONEY_FIELDS) as $k) {
+  foreach (ray(TX_DOWNLOAD_MONEY_FLDS) as $k) {
     $row[$k] = u\cleanAmount(@$row[$k]) + 0;
     $tot[$k] = (@$tot[$k] ?: 0) + $row[$k]; // formatting value is useless
   }

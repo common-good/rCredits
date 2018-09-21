@@ -25,7 +25,7 @@ function setupBasicAccounts() {
   $keys = ray('uid community name fullName email zip country minimum rebate flags');
   $flags = u\bit(B_CO) | u\bit(B_OK);
   
-  $q = db\q('SELECT :R_REGION_FIELDS FROM r_regions');
+  $q = db\q('SELECT :R_REGION_FLDS FROM r_regions');
   while ($row = $q->fetchAssoc()) { // create or update all regions
     extract($row);
     if (!$hasServer) continue;
@@ -71,7 +71,7 @@ function setupBasicAccounts() {
     $helper = 1; //$wws->id;
     $info += compact(ray('email phone address city state helper'));
     $cgf = new r\Acct($info);
-    \variable_set('cgf_uid', $cgf->id);
+    \setV('cgf_uid', $cgf->id);
     $cgf->update('emailCode website', '1495kJHm0h145PHh2345h', 'cg4.us');
 //    $cgf->newRelation($wws->id, r\perm(B_MANAGE));
   }
@@ -216,7 +216,7 @@ function formatField($k, $v, $flagsField = B_LIST) {
   } // member ID. Don't include agent/payerAgent/etc. here
   if ($v and $k == 'channel') $v = u\rayv(ray(TX_CHANNELS), $v);
 ///  if ($k == 'reid') $v = str_replace(R_MEMBER_MARK, R_AGENT_MARK, r\qid($v));
-  if ($v and in($k, R_DATE_FIELDS)) $v = '<div class="date-field">' . strftime('%d%b', $v) . '<span class="year-field">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
+  if ($v and in($k, R_DATE_FLDS)) $v = '<div class="date-field">' . strftime('%d%b', $v) . '<span class="year-field">\'' . strftime('%y', $v) . '<br>' . strftime(isDEV ? '%I:%M %p' : '%l:%M %P', $v) . '</span></div>';
   if ($k == 'flags') $v = "<div class=\"format-flags\">" . a\flagsDesc($v, $flagsField) . '</div>';
   return $v;
 }
@@ -652,8 +652,8 @@ function moveFieldsToHidden() {
     foreach ($dataFields as $k) $$k = @$data[$k];
     foreach ($secureFields as $k) $$k = @$secure[$k];
     $data = $secure = [];
-    foreach (ray(R_DATA_FIELDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
-    foreach (ray(R_SECURE_FIELDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
+    foreach (ray(DATA_FLDS) as $k) if (!is_null($a->$k)) $data[$k] = $a->$k;
+    foreach (ray(SECURE_FLDS) as $k) if (!is_null($a->$k)) $secure[$k] = $a->$k;
 ///    debug($row + compact($dataFields, $secureFields, 'data', 'secure'));
     $a->update(compact($dataFields, $secureFields, 'data', 'secure'));
   }
@@ -666,7 +666,7 @@ function moveFieldsToHidden() {
 function secureVery($a = '') {
   if (!r\acct()->superAdmin) return; // don't bother if not admin
   if ($a) {
-    if ($vflds = just(R_VSECURE_FIELDS, $a->secure)) return $a->update($vflds); // extra encryption
+    if ($vflds = just(VSECURE_FLDS, $a->secure)) return $a->update($vflds); // extra encryption
   } else {
     $q = db\q('SELECT uid FROM users WHERE :IS_OK');
     while ($row = $q->fetchAssoc()) secureVery(r\acct($row['uid']));

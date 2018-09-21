@@ -775,6 +775,8 @@ define('CRYPT_FLAG', '`!'); // flag start of encrypted data (add a single type l
 function cry($type, $data, $de = FALSE, $pwInstead = '') {
 	global $cryHows, $mya;
 	
+	if ($data === '') return $data; // no point encrypting/decrypting nothing
+	
 	if ($de) {
     u\EXPECT(u\starts($data, CRYPT_FLAG . $type), 'bad crypted');
     if ($type == 'V' and !$vKey = r\vKey()) return $data; // if we can't decrypt, return the data as is (for acct::recordChanges)
@@ -808,7 +810,7 @@ function cry($type, $data, $de = FALSE, $pwInstead = '') {
 			case 'b64': $data = $de ? u\b64decode($data) : u\b64encode($data); break; // final encrypt step if present
 			case 'pgp':
 				$trashLen = 30; // do not change this, without re-encrypting everything encrypted with its previous value
-				// NOTE: whether this number is 0 or 200 makes ZERO difference in the strlen of the encrypted value 30 is plenty
+				// NOTE: whether this number is 0 or 200 makes ZERO difference in the strlen of the encrypted value. 30 is plenty
 				if ($de) { // decrypt with supplied private key
   			  $success = openssl_private_decrypt($data, $res, u\fmtKey($vKey, 'PRIVATE')) ? $res : FALSE;
 ///					if (!$success) die(print_r(debug_backtrace(), -1));
@@ -826,7 +828,24 @@ function cry($type, $data, $de = FALSE, $pwInstead = '') {
 	return $de ? $data : (CRYPT_FLAG . $type . @$nonce . $data);
 }
 
-function crypted($type, $s) {return u\starts($s, CRYPT_FLAG . $type);}
+/**
+ * Say whether the value is encrypted.
+ * Call:
+ *   if (u\crypted($type, $s)) ...
+ *   if ($type = u\crypted($s)) decry($type, $s); // P, S, or V only
+ * @param char $type: encryption type
+ * @param string $s: value to test
+ * @return <value is encrypted> OR encryption type (FALSE if none)
+ */
+function crypted($type, $s = NULL) {
+	if (func_num_args() == 1) {
+	  list ($type, $s) = [@$type[strlen(CRYPT_FLAG)], $type];
+	  if (!$type or strpos('PSV', $type) === FALSE) return FALSE;
+		return u\starts($s, CRYPT_FLAG) ? $type : FALSE;
+  } else return u\starts($s, CRYPT_FLAG . $type);
+}
+	
+function decryIf($type, $s) {return crypted($type, $s) ? decry($type, $s) : $s;}
 
 function decry($type, $data, $pwInstead = '') {
 	return u\starts($data, CRYPT_FLAG) ? cry($type, $data, TRUE, $pwInstead) : $data;

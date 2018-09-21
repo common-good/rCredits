@@ -1,3 +1,38 @@
+2018-09-14 still v3.42d
+. changed changes field to changesX and automatically populates new r_changes table
+. added r_usd2 table for service charges and inter-account transfers (to help reconcile Community Fund bank account)
+. eachA(function ($a) {
+		$chs = $a->changesX;
+		if (!strlen($chs)) return;
+		if (db\exists('r_changes', ray('uid', $a->id))) return;
+		$chs = u\decry('S', $chs);
+/**/  if (!$chs = unserialize($chs)) {debug("$a->fullName: bad serial or encryption"); return;}
+		$rec = []; // track historical field values
+		foreach ($chs as $dt => $info) {
+			foreach ($info as $k => $v) {
+				$newValue = isset($rec[$k]) ? $rec[$k] : (in($k, VSECURE_FLDS) ? $a->vsecure[$k] : $a->$k);
+				$rec[$k] = $v;
+				$record = ray('uid created field oldValue newValue changedBy', $a->uid, $dt, $k, $v, $newValue, 0);
+				db\insert('r_changes', $record); // add a r_changes record for each changed field
+			}
+		}
+	});
+		
+2018-09-14 v3.42d
+. changed mail field to "email"
+. refactored some things in acct.class
+. changes are now encrypted as S, V, or P, as appropriate
+
+2018-09-13 v3.42c
+. now uses a change table (made some changes to JR's code, for consistency etc.)
+. partial community fund reconciliation feature
+
+2018-09-06
+. fixed bug that left outgoing transfer requests uncompleted
+. fixed bug that created more than one bank verification request sometimes
+. fixed bug that tried to save null in recovery field of r_proposals
+. bug fix: recurring gift of zero now cancels previous recurring gift
+
 2018-09-04
 . made all filenames lowercase except README.md
 
@@ -73,7 +108,7 @@
 /**/      debug($fullName . ': ' . (r\acceptGift($info) ? 'accepted NOW' : 'later'));
 		}
 	}
-	echo $s;
+/**/	echo $s;
 . 
 
 2018-08-03
@@ -103,13 +138,16 @@
 . changed donation descriptions, to track regular, roundups, and crumbs separately
 . repaired voting so it works again (after eliminating in-line scripts several months ago)
 
+2018-07-05 v?
+. separated changes in member data out to separate table
+
 2018-06-25 v3.40w
 . separated company fields out into r_company
   eachA(function ($a) {
     if (db\exists('r_company', 'uid=' . $a->id)) return;
     $data = $a->data;
-    $info = just(CO_FIELDS, $data);
-    $data = justNOT(CO_FIELDS, $data);
+    $info = just(CO_FLDS, $data);
+    $data = justNOT(CO_FLDS, $data);
     $coFlags = $info['coFlags'];
     foreach (ray('1:1,2:2,3:4,4:6,8:5') as $k=>$v) {
       if (u\getBit($coFlags, $k)) {
@@ -370,7 +408,7 @@ X;
 			foreach ($changes as $dt => $ch) {
 				if (is_array($ch)) foreach ($ch as $k => $v) {
 				  if (!strlen($v)) continue;
-				  if (in_array($k, ray(R_VSECURE_FIELDS))) {
+				  if (in_array($k, ray(R_VSECURE_FLDS))) {
 					  if (u\oldcrypted($v)) $v = u\decryptM($v, 0, $pw2);
             if (u\crypted('V', $v)) $v = u\decry('V', $v)						;
 					  if (!$v or !ctype_print($v)) {
@@ -403,7 +441,7 @@ X;
 			if ($v and !is_array($v)) $v = unserialize($v);
 			if ($v) $secure['ssnData'] = $v; else unset($secure['ssnData']);
 
-			foreach (ray(R_VSECURE_FIELDS) as $k) {
+			foreach (ray(R_VSECURE_FLDS) as $k) {
 				if (strlen($v = u\decryptM($secure[$k], 0, $pw2))) {
 				  $vsecure[$k] = $activated ? u\cry('V', $v) : $v;
 					unset($secure[$k]);
@@ -480,7 +518,7 @@ X;
       }
     }
     $secure0 = $secure = $a->secure;
-    foreach (ray(R_VSECURE_FIELDS) as $k) {
+    foreach (ray(R_VSECURE_FLDS) as $k) {
       if ($v = @$secure[$k]) {
 /**/    if (!@$a->$k) {
           if (FORREAL) $a->update($k, $v); 
@@ -1691,7 +1729,7 @@ function special2() {
   CG\changeUid(-8915, -26742000000001, FALSE);
   CG\changeUid(-8321, -25026000000001, FALSE);
   for ($i = 1; $i <= 10; $i++) CG\changeUid(24960000000000 + $i, 25026000000000 + $i, FALSE);
-  \variable_set('r_totals', []);
+  \setV('r_totals', []);
 
 2014-02-12
 . fix data (already done on production server):

@@ -152,7 +152,7 @@ function formSignup_validate($form, &$sta) {
 //  if (!$inviteOk) return w\go('signup'); // in case user resubmits
   //and @$code != bin2hex(R_WORD)
 
-  \variable_set('signupData', ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
+  \setV('signupData', ray('time phone state companyOptions', time(), @$phone, @$state, @$companyOptions));
   if (!emailOkay($email, $acctType != CO_PERSONAL, @$myid ? r\acct($myid) : '')) return;
   if (!phoneOk($phone, $country)) return;
   if ($err = u\badZip($zip)) return say($err, 'zip');
@@ -246,7 +246,7 @@ function formSignup_submit($form, &$sta) {
     if (!@$h) hack('company no helper');
     if ($mya->email == $h->email) {
       $mya->stepDone('verify');
-    } else r\notify($myid, 'verifyCo', ['code' => $pw1], TRUE); 
+    } else r\notify($myid, 'verify-co', ['code' => $pw1], TRUE); 
     return w\goNextStep('signup');  
   } else { // non-personal company (no independent login)
 

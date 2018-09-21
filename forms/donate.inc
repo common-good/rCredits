@@ -53,7 +53,6 @@ function formDonate($form, &$sta, $args = '') {
   $honor = selectFld(t('Honoring:'), '', '', $honors);
   $honored = areaFld('', [t('Honoring whom or what')]);
 //    $roundup = $mya->ok ? '' : w\roundupFld($mya),
-//  if (!$mya->ok) $wait = submit(t('Ask me in a few weeks'), 'info', 'xs');
 
   jsx('gift');
   return cgform(compact(ray('title subtext gift amount period honor honored recurId')) + w\setupFoot(t('Donate')) + compact('wait'));
@@ -62,8 +61,6 @@ function formDonate($form, &$sta, $args = '') {
 function formDonate_validate($form, &$sta) {
   $mya = w\eLinkAcct($sta, $args); 
 
-  if (op($sta) == 'wait') return;
-  
   extract(just('gift amount period', $sta['input']));
 //  $amount = $gift ?: $amount;
   if ($gift != -1) $amount = $gift;
@@ -77,15 +74,17 @@ function formDonate_submit($form, &$sta) {
   $mya = w\eLinkAcct($sta, $args); 
 
   extract(just('amount period honor honored roundup recurId', $sta['input']));
-  if ($amount > 0 and op($sta) != 'wait') {
+  $info = ray('payer payee amount period created lastTx invoiced', $mya->id, CGID, $amount, $period, NOW, 0, 0);
+  if ($period != '1' and @$recurId) {
+		db\update('r_recurs', ray('id ended', $recurId, NOW), 'id');
+		say(t('Your previous recurring gift has been canceled.'));
+	}
+
+  if ($amount > 0) {
     if ($honored) db\insert('r_honors', ray('uid honor honored', $mya->id, $honor, $honored));
-    if ($period != '1') {
-			if (@$recurId) db\update('r_recurs', ray('id ended', $recurId, NOW), 'id');
-			db\insert('r_recurs', ray('payer payee amount period', $mya->id, CGID, $amount, $period));
-		}
+    if ($period != '1') db\insert('r_recurs', ray('payer payee amount period', $mya->id, CGID, $amount, $period));
 
     $msg = 'gift successful';
-		$info = ray('payer,payee,amount,period,created,lastTx,invoiced', $mya->id, CGID, $amount, $period, NOW, 0, 0);
     if (!r\acceptGift($info)) $msg .= '|gift transfer later';
     say($msg);
   }
