@@ -1,3 +1,16 @@
+2018-09-21 v3.42g
+. fixed bug that let anyone reverse their own payment (now sends invoice)
+. improved reconciliation (added manual reconciliation and offset form)
+. moved features (and steps and tests) to a features folder above rcredits/
+
+2018-09-18 v3.42f
+. fixed bug in photo upload (typo from last release)
+. improved reconciliation (feature still incomplete)
+
+2018-09-15 v3.42e
+. changed r_usd and r_usd2 bankTxId default to 0 (bug fix)
+. made progress on ctty fund reconciliation
+
 2018-09-14 still v3.42d
 . changed changes field to changesX and automatically populates new r_changes table
 . added r_usd2 table for service charges and inter-account transfers (to help reconcile Community Fund bank account)

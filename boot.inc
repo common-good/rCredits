@@ -122,10 +122,11 @@ define('isSAFARI', stripos($agt, 'Chrome') === FALSE and stripos($agt, 'Safari')
 
 // one-time database changes, if any
 $sqlOnce = <<< X
-  ALTER TABLE `users` CHANGE `changes` `changesX` LONGBLOB NULL DEFAULT NULL COMMENT 'OLD changes made to the account';
-  ALTER TABLE `x_users` CHANGE `changes` `changesX` LONGBLOB NULL DEFAULT NULL COMMENT 'OLD changes made to the account';
-	ALTER TABLE `users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
-	ALTER TABLE `x_users` CHANGE `mail` `email` VARCHAR(254) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT 'email address';
+  ALTER TABLE `r_usd2` CHANGE `bankTxId` `bankTxId` BIGINT(20) NOT NULL DEFAULT '0' COMMENT 'bank transaction ID';
+  ALTER TABLE `r_usd` CHANGE `bankTxId` `bankTxId` BIGINT(20) NOT NULL DEFAULT '0' COMMENT 'bank transaction ID';
+  ALTER TABLE `x_usd` CHANGE `bankTxId` `bankTxId` BIGINT(20) NOT NULL DEFAULT '0' COMMENT 'bank transaction ID';
+	UPDATE r_usd SET bankTxId=0 WHERE bankTxId=1;
+	UPDATE x_usd SET bankTxId=0 WHERE bankTxId=1;
 X;
 
 /**

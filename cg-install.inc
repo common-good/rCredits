@@ -79,7 +79,7 @@ function tableDefs($schema = []) {
   );
 
   $foreignKeys = foreignKey('community');
-  $indexes = index('name') + index('mail') + index('created') + index('community') + index('zip');
+  $indexes = index('name') + index('email') + index('created') + index('community') + index('zip');
   $schema['users'] = dbTable(t('Account data'), $fields, 'uid', $foreignKeys, $indexes);
 
   // table sessions (additions to Drupal standard)
@@ -297,7 +297,7 @@ function tableDefs($schema = []) {
     'bankAccount' => dbFld(t('Bank account for the transfer'), 'blob'), // "blob tiny" does not exist
     'risk' => dbFld(t('suspiciousness rating'), 'float medium', NULL), // NULL means never set yet
     'risks' => dbFld(t('list of risk factors'), 'int big', 0, TRUE),
-		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', TRUE),
+		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', 0),
     'channel' => dbFld(t('through what medium was the transaction entered'), 'int tiny'),
 //    'members' => isGAME ? dbFld(t('number of members represented'), 'int medium', 1) : NULL,
   );
@@ -308,10 +308,11 @@ function tableDefs($schema = []) {
   // table r_usd2 (extra transactions in Community Fund Bank Account)
   $fields = array(
     'id' => dbFld(t('record ID'), 'serial big'), 
+		'type' => dbFld(t('transaction type (S=service charge, T=transfer between accounts)'), 'char 1'),
     'amount' => dbFld(t('amount of transfer'), 'numeric 11,2'), 
     'completed' => dbFld(t('Unixtime transaction was completed'), 'int 11', 0), // for deposits / withdrawals
-		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', TRUE),
-		'type' => dbFld(t('transaction type (S=service charge, T=transfer between accounts)'), 'char 1'),
+		'bankTxId' => dbFld(t('bank transaction ID'), 'int big', 0),
+		'memo' => dbFld(t('transaction description (from bank)'), 'text tiny'),
   );
   $foreignKeys = [];
   $indexes = index('completed');

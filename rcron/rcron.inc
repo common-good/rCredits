@@ -360,6 +360,7 @@ function warnAnnualGift($item) {
 	extract(just('uid amount when created period invoiced lastTx', $item));
 	
 	$a = r\acct($uid);
+///    debug(giveNow($period, $lastTx, $created, $when));
 	if (@$amount) if ($invoiced or !giveNow($period, $lastTx, $created, $when) or giveNow($period, $lastTx, $created, $when - DAY_SECS)) return; // not time yet for annual (or it was also time yesterday)
 	
 	$aDonate = w\atag("/do/doDonate~$a->mainQid~$a->emailCode");
@@ -552,7 +553,7 @@ function requests() {
   $sql = <<< X
   UPDATE r_request r LEFT JOIN users u 
   ON (
-    (r.email<>'' AND u.mail=r.email) OR
+    (r.email<>'' AND u.email=r.email) OR
     (r.phone<>'' AND u.phone=r.phone) OR
     (INSTR(u.fullName, r.first)>0 AND INSTR(u.fullName, r.last)>0 AND MID(u.zip, 1, 5)=MID(r.zip, 1, 5))
   )
@@ -842,9 +843,10 @@ function giveNow($period, $lastGift, $firstGift, $now = NOW) {
 	if ($now == NOW) if (!$lastGift) return TRUE;
   $m = $period == 'M' ? 1 : ($period == 'Q' ? 3 : 12);
 	$window = $now - MONTH_SECS * $m / 3; // should be at least a third of a period since the last gift
-	
+///	  debug(compact(ray('period lastGift firstGift now window lastTrigger m')));
 	if ($lastGift + 0 > $window) return FALSE;
 	$lastTrigger = $firstGift + (MONTH_SECS * $m) * floor(($now - $firstGift) / (MONTH_SECS * $m));
+///  	debug(compact(ray('period lastGift firstGift now window lastTrigger m')));
 	return ($lastTrigger > $lastGift); // last Trigger must be after last gift
 }
 

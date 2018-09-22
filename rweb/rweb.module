@@ -205,6 +205,7 @@ function rweb_menu($submenu = '') {
     'sadmin/achs' => ['call', t('ACHs'), '2', 'superadmin', 'achBatch'],
     'sadmin/changes' => ['call', t('See Changes'), 'SeeChanges 2', 'cadmin'],
 		'sadmin/reconcile-ctty-fund' => ['call', t('Reconcile Community Fund'), 'ReconcileCttyFund', 'superadmin'],
+    'sadmin/reconcile-ctty-fund/manually' => ['call', t('Reconcile Manually'), 'ReconcileManually', 'superadmin'],
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
     'rcredits/util' => ['call', 'Util', '2', 'superadmin', 'util'],
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed

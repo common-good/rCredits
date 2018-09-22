@@ -356,7 +356,7 @@ function fmtPhone($phone, $how = '+') {
 }
 
 /**
- * Return the array with its keys prefixed by the given string (and maybe suffixed, too)
+ * Return the given array with its keys prefixed by the given string (and maybe suffixed, too)
  * @param string $prefix: what to prefix each key with
  * @param assoc $ray: the array
  * @param bool $noArray: <make sure no element of the result is an array>
@@ -370,7 +370,11 @@ function prefixKeys($prefix, $ray, $noArray = FALSE, $suffix = '') {
   return $newRay;
 }
 
+/**
+ * Return the given array with each value prefixed by the given string.
+ */
 function prefixValues($prefix, $ray) {
+  if (!is_array($ray)) $ray = ray($ray);
   foreach ($ray as $k => $v) $ray[$k] = $prefix . $v;
   return $ray;
 }

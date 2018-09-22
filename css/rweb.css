@@ -947,6 +947,12 @@ div.password-confirm .error {font-weight:bold; color:red;}
 #cttyFunds td {text-align:right;}
 #cttyFunds td:first-child {text-align:left;}
 
+/* Reconcile Manually */
+
+#frm-reconcilemanually div[id^="edit-tx"] {margin-bottom:0;}
+#frm-reconcilemanually div[id^="edit-tx"] label,
+#frm-reconcilemanually div[id^="edit-tx"] .control-data  {padding-top:0;}
+
 /* Reports (Community Statistics/Graphs) */
 #frm-graphs {clear:both;}
 #frm-graphs .control-label {display:none;}

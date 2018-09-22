@@ -658,8 +658,8 @@ class Acct {
    * Apply a discount coupon to the current purchase, if any exists.
    * @param acct $sellerA: account that issued the coupon
    * @param numeric $price: original price to be paid
-   * @param numeric $rebate: (RETURNED) how much rebate the customer gets
-   * @param int $coupid: coupon id
+   * @param numeric $rebate: (RETURNED) how much rebate the customer gets (FALSE if none)
+   * @param int $coupid: (RETURNED) coupon id of the relevant coupon (FALSE if none)
    * @return the final effective price to be paid
    */
   public function applyCoupon($sellerA, $price, &$rebate = '', &$coupid = '') {

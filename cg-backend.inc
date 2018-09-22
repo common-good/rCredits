@@ -151,9 +151,9 @@ function updateRelations($updates) {
 /**
  * Undo the given transaction.
  * Situations:
- *     I paid someone:            REVERSE (with reverse rewards)
- *     I charged someone:         REVERSE
- *     Someone paid me:           REVERSE
+ *     I paid someone (byMe):            REVERSE (invoice)
+ *     I charged someone (toMe/byMe):    REVERSE (pay back)
+ *     Someone paid me (toMe):           REVERSE (pay back)
  *     Someone invoiced me and I approved it: DISPUTED
  *     Someone charged me unilaterally: DISPUTED
  * @param int $xid: the transaction number
@@ -171,16 +171,14 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
 //  $myx = r\x($tx, $mya);
   $data = $myx->data;
 
-  if (!$myx->toMe and !$myx->byMe) { // someone charged (either unilaterally or I approved it)
+  if (!$myx->toMe and !$myx->byMe) { // someone charged me (either unilaterally or I approved it)
     r\disputeTx($xid); // mark it disputed
     $solution = t('marked "disputed"');
     r\notify($myx->them, 'charge disputed', $myx->reportArgs());
   } else {
-    $type = $myx->toMe ? 'charge' : 'payment';
 //    $amounts = just('amount payerReward payeeReward', $myx->ray);
-    $amounts = just('amount', $myx->ray);
     $what = [$myx->payerFor, $myx->payeeFor];
-    return reverse($xid, $amounts, $what, $myx->a2, $data, $myx->goods, $myx->tid, $type, $myx->tid2, $force); // create an offsetting transaction
+    return reverse($xid, $myx->amount, $what, $myx->a2, $data, $myx->goods, $myx->tid, $myx->toMe, $myx->byMe, $myx->tid2, $force); // create an offsetting transaction
   }
 
   $amount = u\fmtAmt($myx->amount);
@@ -192,55 +190,54 @@ function undoTx($xid, $where = '1', $subs = [], $force = FALSE) {
 }
 
 /**
- * Create an offsetting transaction (nearly the same as the original but with a negative amount).
+ * Create an offsetting transaction or invoice (nearly the same as the original but with a negative amount).
  */
-function reverse($xid, $amounts, $what, $acct, $data, $old_goods, $tid, $type, $otherTid, $force) {
-  global $mya;
+function reverse($xid, $amount, $what, $acct, $data, $old_goods, $tid, $toMe, $byMe, $otherTid, $force) {
+  global $mya, $channel;
 ///    print_r(compact(ray('xid amount acct data tid toMe'))); die();
-  u\EXPECT(compact(ray('xid amounts what acct data tid type otherTid')), 'id assoc array acct assoc|empty int string int'); // otherTid may be 0 (for reversing rewards)
+u\EXPECT(compact(ray('xid amount what acct data tid toMe byMe otherTid force')), 'id float array acct assoc|empty int bool bool int int|empty'); // otherTid may be 0 (for reversing rewards)
   
   if (!is_array($data)) $data = [];
   $old_data = $data; // remember original data from transaction we're reversing
-//  extract(just('rebate bonus xfee', $data));
   extract(just('xfee coupon', $data));
-  $tids = u\order($type == 'payment', $tid, $otherTid);
+  $tids = u\order($toMe, $otherTid, $tid);
   for ($i = 0; $i < 2; $i++) $what[$i] .= t(' (reverses #%tid)', 'tid', $tids[$i]);
-//  $otherFor = str_replace($tid, $otherTid, $myFor);
-//  $what = u\order($type == 'payment', $myFor, $otherFor);
-//  foreach (ray('rebate bonus xfee') as $k) if (@$$k) $data[$k] = -$$k;
   if (@$xfee) $data['xfee'] = -$xfee;
   if (@$coupon) {
     $data['coupon'] = -$coupon;
-    $payer = $type == 'charge' ? $acct->id : $mya->id;
+    $payer = $toMe ? $acct->id : $mya->id;
     db\q('UPDATE r_coupated SET uses=uses-:duse WHERE uid=:payer AND coupid=:coupid', ray('duse payer coupid', ($coupon < 0 ? -1 : 1), $payer, $data['coupid']));
   }
   $data['undoes'] = $xid; // remember what we're reversing (especially to get the realness right)
-  foreach ($amounts as $k => $v) $amounts[$k] = -$v;
+//  foreach ($amounts as $k => $v) $amounts[$k] = -$v;
   if ($force) u\preray(compact('force'), $data);
 
   $data['goods'] = $old_goods;
-  list ($message, $args) = be\transfer($type, $mya, $acct, $amounts, $what, $data);
+  list ($message, $args) = ($byMe and $channel != TX_POS)
+  ? be\invoice($mya, $acct, $amount, $what[1], $data)
+  : be\transfer($toMe ? 'charge' : 'payment', $mya, $acct, -$amount, $what, $data);
 
   if (@$args['success']) {
-    extract(just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
-    $old_data['undoneBy'] = $new_xid;
-    $old_data['changes'][] = array(r\rTime(), $mya->agentId, 'undo', $new_xid);
-    $old_data = serialize($old_data);
-    $myFor = " (reversed by #$new_tid)";
-    $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
-    list ($payerFor, $payeeFor) = u\order($type == 'payment', $myFor, $otherFor);
-    $sql = <<<EOF
-      UPDATE r_txs SET 
-        payerFor=CONCAT(payerFor, :payerFor), 
-        payeeFor=CONCAT(payeeFor, :payeeFor),
-        data=:old_data,
-        flags=flags|(1<<:B_UNDONE)
-      WHERE xid=:xid
+    if (!$byMe) {
+      extract(just('xid tid otherTid', $args), EXTR_PREFIX_ALL, 'new');
+      $old_data['undoneBy'] = $new_xid;
+      $old_data['changes'][] = array(r\rTime(), $mya->agentId, 'undo', $new_xid);
+      $old_data = serialize($old_data);
+      $myFor = " (reversed by #$new_tid)";
+      $otherFor = str_replace($new_tid, $new_otherTid, $myFor);
+      list ($payerFor, $payeeFor) = u\order(!$toMe, $myFor, $otherFor);
+      $sql = <<<EOF
+        UPDATE r_txs SET 
+          payerFor=CONCAT(payerFor, :payerFor), 
+          payeeFor=CONCAT(payeeFor, :payeeFor),
+          data=:old_data,
+          flags=flags|(1<<:B_UNDONE)
+        WHERE xid=:xid
 EOF;
-    $subs = compact(ray('payerFor payeeFor xid old_data'));
-    db\logSql(compact(ray('sql subs')));
-    db\q($sql, $subs);
-    
+      $subs = compact(ray('payerFor payeeFor xid old_data'));
+      db\logSql(compact(ray('sql subs')));
+      db\q($sql, $subs);
+    }    
     $message = 'report undo|' . $message;
     $args['solution'] = 'reversed';
   }
@@ -450,8 +447,11 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   global $channel;
   
   u\EXPECT(compact(ray('a1 a2 amount purpose')), 'acct acct float string');
-  extract(just($ks = 'goods shid status', $extra));
-	foreach (justNOT($ks, $extra) as $k => $v) u\setBit($flags, $k, $v);
+  extract(just($ks = 'goods status', $extra));
+	foreach (justNOT("goods status shid coupon coupid force", $extra) as $k => $v) {
+    u\setBit($flags, $k, $v);
+    unset($extra[$k]); // don't leave bits in extras (data field)
+  }
   list ($payee, $payer) = array($a1->id, $a2->id);
   u\setDft($goods, FOR_GOODS);
   u\setDft($purpose, $why = ray(R_WHYS)[$goods]);
@@ -462,7 +462,7 @@ function invoice($a1, $a2, $amount, $purpose = NULL, $extra = []) {
   
   $created = r\rTime();
   u\setDft($status, ($channel != TX_FOREIGN and r\relation(':IS_AUTOPAY', $payee, $payer)) ? TX_APPROVED : TX_PENDING);
-  if (@$shid) $data = serialize(compact('shid'));
+  $data = serialize($extra);
   $info = compact(ray('amount status payer payee goods purpose created flags data'));
   $nvid = db\insert('r_invoices', $info);
   $a1->update('lastTx', [$nvid, $payer - $payee, round(-$amount, 2), $created, 'inv']);
