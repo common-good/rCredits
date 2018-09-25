@@ -321,11 +321,15 @@ function goFar($url, $params = '') {
 
 /**
  * Process an uploaded file, returning the filename (or returning FALSE and setting an error message).
+ * If the file upload is optional, the caller can ignore the error message.
+ * @param string $err: (RETURNED) error message, if any
+ * @param string $fld: field name of file input (defaults to "file")
+ * @return filename of the temporary uploaded file (FALSE if failure)
  */
-function uploadFile(&$err = '') {
-  if (!@$_FILES['files']['name']['file']) return !$err = t('upload required');
+function uploadFile(&$err = '', $fld = 'file') {
+  if (!@$_FILES['files']['name'][$fld]) return !$err = t('upload required');
   $file = new \stdClass();
-  foreach ($_FILES['files'] as $k => $v) $file->$k = $v['file'];
+  foreach ($_FILES['files'] as $k => $v) $file->$k = $v[$fld];
   if (function_exists('mime_content_type') and $filetype = mime_content_type($file->tmp_name)) {
     if (!in($filetype, 'text/csv text/plain')) return !$err = t('bad file type', compact('filetype'));
   }

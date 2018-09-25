@@ -1,5 +1,11 @@
 _____________________________________________
 
+//  extract(just('rebate bonus xfee', $data));
+//  $otherFor = str_replace($tid, $otherTid, $myFor);
+//  $what = u\order($type == 'payment', $myFor, $otherFor);
+//  foreach (ray('rebate bonus xfee') as $k) if (@$$k) $data[$k] = -$$k;
+_____________________________________________
+
 /*          $record->old_value = u\decry('S', $record->old_value);
             $record->new_value = u\decry('S', $record->new_value);
         }

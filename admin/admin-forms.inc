@@ -932,7 +932,7 @@ function formSMS_submit($form, $sta) {
  */
 function test($arg = '') {
   \drupal_get_messages(); // clear messages
-  $modules = u\prefixValues('rcredits/', ray('admin rweb rcron rsmart'));
+  $modules = ray('admin rweb rcron rsmart');
   jsx('test');
   include_once DRUPAL_ROOT . '/vendor/gherkin/test.php';
   file_put_contents(T_MSG_FILE, serialize(\drupal_get_messages()));

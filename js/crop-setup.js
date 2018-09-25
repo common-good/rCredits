@@ -4,7 +4,7 @@ var uniq = (new Date()).getTime(); // unique value (so default picture does not 
 $('#photoUp').css('background-image', 'url(' + baseUrl + '/account-photo?t=' + uniq + ')'); 
 
 var err = false;
-var maxsize = 6; // maximum photo file size, in MB
+var maxSize = 6; // maximum photo file size, in MB
 var croppicOptions = {
 //      uploadUrl:'$base_url/settings/photo',
   cropUrl:baseUrl + '/settings/photo/upload',

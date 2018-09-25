@@ -284,7 +284,7 @@ function export($params) {
     $q = db\q($sql);
     while ($row = $q->fetchAssoc()) {
       extract($row);
-      if (db\exists('users', 'mail=:email', compact('email'))) continue; // don't duplicate or send to nonudge people
+      if (db\exists('users', 'email=:email', compact('email'))) continue; // don't duplicate or send to nonudge people
       list ($id, $first_name, $last_name, $modified) = [$listid, $first, $last, time()];
       $address = $city = $state = $ecode = $special = '';
 //      $type = $ctty == 0 ? '' : 'member';

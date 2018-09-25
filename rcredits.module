@@ -141,6 +141,11 @@ function g($k, $v = NULL) {
  */
 /**/ function bs($n, $list = B_LIST) {d('a.flagsDesc', $n, $list);} // show bit numbers/names
 /**/ function tm($n = '') {debug($result = $n ? (is_numeric($n) ? date('m/d/Y H:i:s a', $n) : strtotime($n)) : time()); return $result;} // convert and display unixtime or string time
+function btm($bankTxId = '') {debug(date('m/d/Y H:i:s a', DAY_SECS * substr($bankTxId, isDEV ? 4 : 5) / 10));}
+function bankTxId($btxid) { // for debugging reconcilecttyfund.inc
+	list ($txid, $dt, $acct) = [substr($btxid, isDEV ? -1 : -7), substr($btxid, -15, 8), substr($btxid, 0, strlen($btxid) - 7 - 8)];
+	return 0 + (substr($acct, -5, isDEV ? 4 : 5) . floor(strtotime($dt) / DAY_SECS) . (isDEV ? substr($txid, -1) : $txid)); // (intval fails here)
+}
 function a($id = '', $agent = '') { // return an account object
 	global $lastA; 
 	$id = strlen($id) == 3 ? '.' . $id : $id;
