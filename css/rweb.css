@@ -7,7 +7,7 @@
 
 @font-face {
     font-family: "GnuMICR";
-    src: url(GnuMICR.ttf) format("truetype");
+    src: url(fonts/gnumicr.ttf) format("truetype");
 }
 
 .smallish {font-size:85%;}

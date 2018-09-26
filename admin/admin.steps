@@ -1,0 +1,134 @@
+<?php
+/**
+ * @file
+ * Admin Steps
+ *
+ * Provide step functions for functional testing.
+ * This file is created automatically by the Gherkin compiler.
+ *
+ * Note, therefore, that most of this file might be changed automatically
+ * when you run the compiler again. This @file header will not be affected,
+ * but all of the function header comments are (re)generated automatically.
+ *
+ * Be assured that no functions will be deleted and the compiler will
+ * not alter code within a function unless you make it look like a function header.
+ *
+ * You may also add statements just below this header (for example "use" and "require_once").
+ */
+use CG as r;
+use CG\DB as db;
+use CG\Testing as t;
+use CG\Util as u;
+use CG\Backend as be;
+
+require_once __DIR__ . '/../defs.inc';
+
+if (basename($_SERVER['SCRIPT_FILENAME']) != 'compile.php') {
+  require_once __DIR__ . '/../cg.inc';
+  require_once __DIR__ . '/../cg-testing.inc';
+}
+
+/**
+ * Add additional setup for any or all features or tests
+ */
+function extraSetup() {
+  t\clear(TX_WEB);
+}
+
+/**
+ * members: (ARG)
+ *
+ * in: MAKE activate Setup
+ *     TEST activate AdminActivatesAnAccount
+ *     MAKE Changes Setup
+ *     MAKE checks Setup
+ */
+function members($list) {return t\members($list);}
+
+/**
+ * transactions: (ARG)
+ *
+ * in: MAKE checks Setup
+ */
+function transactions($list) {return t\transactions($list);}
+
+/**
+ * usd transfers: (ARG)
+ *
+ * in: BOTH checks AdminPrintsChecks
+ */
+function usdTransfers($tx) {return t\usdTransfers($tx);}
+
+/**
+ * member (ARG) visits page (ARG)
+ *
+ * in: MAKE Changes AMemberChangesSomeSettings
+ *     MAKE checks AdminPrintsChecks
+ */
+function memberVisitsPage($id, $page) {return t\memberVisitsPage($id, $page);}
+
+/**
+ * we show (ARG) with: (ARG)
+ *
+ * in: TEST Changes AMemberChangesSomeSettings
+ *     TEST checks AdminPrintsChecks
+ */
+function weShowWith($title, $content = FALSE, $showDebugs = TRUE) {
+  return t\weShowWith($title, $content, $showDebugs);
+}
+
+/**
+ * member (ARG) completes form (ARG) with values: (ARG)
+ *
+ * in: MAKE activate AdminActivatesAnAccount
+ *     MAKE Changes AMemberChangesSomeSettings
+ */
+function memberCompletesFormWithValues($id, $page, $values) {return t\completeForm($id, $page, $values);}
+
+/**
+ * we show pdf with: (ARG)
+ *
+ * in: TEST checks AdminPrintsChecks
+ */
+function weShowPdfWith($list) {
+  global $testOnly, $pdfSays;
+  $in = strip_tags(join(' ', @$pdfSays ?: []));
+  $px = 0;
+  foreach ($list as $k => $v) {
+    foreach ($v as $one) {
+      $p = strpos($in, $one, $px);
+      if ($p === FALSE) return t\output("Can't find \"$one\" in \"$in\" starting at $px.");
+      $px = $p + strlen($one);
+    }
+  }
+  return TRUE;
+}
+
+/**
+ * balances: (ARG)
+ *
+ * in: TEST checks AdminPrintsChecks
+ */
+function balances($list) {return t\balances($list);}
+
+/**
+ * relations: (ARG)
+ *
+ * in: MAKE activate Setup
+ */
+function relations($relations) {return t\relations($relations);}
+
+/**
+ * we notice (ARG) to member (ARG) with subs: (ARG)
+ *
+ * in: 
+ */
+function weNoticeToMemberWithSubs($notice, $id, $subs) {return t\notice($notice, $id, $subs);}
+
+/**
+ * member (ARG) has no photo ID recorded
+ *
+ * in: MAKE activate AdminActivatesAnAccount
+ */
+function memberHasNoPhotoIDRecorded($id) {return t\noPhotoId($id);}
+
