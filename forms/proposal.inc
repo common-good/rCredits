@@ -37,7 +37,7 @@ function formProposal($form, &$sta, $args = '') {
   $optionKeys = ray(t('energy business justice food arts'));
   $criteria = [
     '' => t('Points'),
-    t('How well does the project support our %PROJECT community funding priorities?') => 15,
+    t('How well does the project support our %PROJECT community investment priorities?') => 15,
 		t('How does the project promote systemic change?') => 15,
     t('Overall, how clearly doable is the project?') => 15,
     t('Ability to manage the project and funds effectively.') => 10,
@@ -65,10 +65,10 @@ function formProposal($form, &$sta, $args = '') {
 EOF;
   
   $crit = '<div id="critChart" class="table">' . join('', $crit) . '</div>';
-  $critPop = item(w\modal('criteria', t('Evaluation Criteria for Funding Proposals'), '', $crit, 'X'));
+  $critPop = item(w\modal('criteria', t('Evaluation Criteria for Community Investment Proposals'), '', $crit, 'X'));
   jsx('funding-criteria');
 
-  $title = t('Application/Proposal for Community Funding');
+  $title = t('Application/Proposal for Community Investment');
 	$event = hidFld($eid);
   $_aInfo = w\atag(PROMO_URL);
   $_aCrit = 'a class="critLink"'; //  href="javascript:;

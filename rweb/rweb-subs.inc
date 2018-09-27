@@ -2368,7 +2368,7 @@ function webAccess($perms = NULL) {
     : ($perm == 'superadmin' ? ($mya and $mya->superAdmin)
     : ($perm == 'superadminORdev' ? (($mya and $mya->superAdmin) or isDEV)
     : ($perm == 'prose' ? ($mya and $mya->proSe)
-    : ($perm == 'investor' ? ($mya and db\exists('r_stakes', 'uid=:id', ray('id', $mya->id)))
+    : ($perm == 'investor' ? ($mya and ($mya->isIClub or db\exists('r_stakes', 'uid=:id', ray('id', $mya->id))))
     : ($mya and $mya->can(u\consta('b', $perm))) ))))));
 
     if ($not ? $pass : !$pass) return FALSE;

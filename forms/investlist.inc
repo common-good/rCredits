@@ -10,6 +10,7 @@ use CG\Db as db;
  * List potential or actual investments.
  */
 function formInvestList($form, &$sta, $args = '') {
+  global $mya;
   extract(just('actual clubid', $args));
 
   list ($actualInv, $proposedInv) = [t('Actual Investments'), t('Proposed Investments')];
@@ -56,7 +57,8 @@ X;
 X;
   } else $list = t('There are no investments at this time.');
 
-  $back = backButton();
+  $buttons = backButton();
+  if ($mya->isIClub) $buttons .= btn("/invest/propose/clubid=$clubid", t('Propose'));
   
-  return cgform(compact(ray('title subtext back list')));
+  return cgform(compact(ray('title subtext buttons list')));
 }

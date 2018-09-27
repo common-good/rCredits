@@ -321,7 +321,9 @@ function tickleStep($item) {
 
 /**
  * Do stuff monthly (every 30 days) since member has been active:
- * . Calculate credit line (for overdrafts etc.): give the member (cg)credit up to their average monthly throughput over the past 6 months (which comes to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months)
+ * . Calculate credit line (for overdrafts etc.): give the member (cg)credit up to their average monthly throughput over the past 6 months
+ *   (which comes to 1/6 their monthly throughput if they've been in for a month, 2/6 for 2 months, etc, up to 100% at 6 months)
+ *   A community's credit limit is the amount in its Dollar Pool.
  * . Cashout automatically if account chose that monthly option.
  */
 function activeMonthly($item) {
@@ -333,6 +335,7 @@ function activeMonthly($item) {
   
   // temporarily (until 2019?) limit the rate of change of the floor (while changing to new system)
   $floor = round(min(-$monthly, .9 * $floorX), 2);
+  if ($a->isCtty) $floor = -db\sum('amount', 'r_usd t JOIN users u ON u.uid=t.payee', 'u.community=:ctty', ray('ctty', $a->id));
   $a->update('floor', $floor);
 
   $ratio = $floor ? $floorX / $floor : 1;

@@ -163,6 +163,13 @@ function doit(what, vs) {
         $('#edit-company').removeAttr('required');
         $('#edit-fullname').focus();
       });
+      $('#edit-equity-0, #edit-equity-1').click(function() {
+        var equity = $('input[name="equity"]:checked').val();
+        $('.form-item-equitySet').toggle(equity == 1);
+        $('.form-item-loanSet').toggle(equity != 1);
+      });
+      $('.form-item-equitySet').toggle($('#edit-equity').val());
+      $('.form-item-loanSet').toggle(!$('#edit-equity').val());
       break;
       
     case 'on-submit':
