@@ -5,7 +5,7 @@
  * (SMS, web, smartphone, etc.)
  */
 
-define('R_VERSION', '3.42g'); // software version
+define('R_VERSION', '3.42h'); // software version
 
 // definitions used in settings file
 define('US_COUNTRY_ID', 1228); // United States
