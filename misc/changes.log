@@ -1,3 +1,11 @@
+2018-09-29
+. fixed bug that kept ssnOff from getting set
+. ajax now picks up agent ID, so changeBy field in r_changes gets set properly
+. after reconciliation admin has the option to create an offsetting transfer from checking to Dollar Pool
+
+2018-09-27
+. separated investment club administration from individual participation
+
 2018-09-21 v3.42g
 . fixed bug that let anyone reverse their own payment (now sends invoice)
 . improved reconciliation (added manual reconciliation and offset form)

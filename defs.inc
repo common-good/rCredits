@@ -129,7 +129,8 @@ define('BY_CHECK', '(check)'); // app includes this in description, for a purcha
 define('BY_CARD', '(card)'); // app includes this in description, for a purchase of rCredits by credit card
 define('R_ON_FILE', t('(on file)'));
 define('DEPOSIT_SQL', '(amount>0 XOR txid<0)'); // SQL fragment for "transfer is from bank to CG"
-define('CANONIC_ACCTS', 3); // number of canonic accounts (admin, placeholders,...)
+define('DOLLAR_POOL', 1); // uid of dollar pool account
+define('CANONIC_ACCTS', 3); // number of canonic accounts (admin/dollar pool, placeholders,...)
 
 define('R_TEMP_NAME_PREFIX', 'unknown ');
 define('CO_PHOTO_FACTOR', 3); // make company photos this many times as big as individual photos

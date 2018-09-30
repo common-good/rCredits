@@ -12,6 +12,8 @@ for (var what in args) doit(what, parseUrlQuery(args[what]));
 function doit(what, vs) {
   function fid(field) {return '#edit-' + vs[field].toLowerCase();}
   function fform(fid) {return $(fid).parents('form:first');}
+  function report(j) {$.alert(j.message, j.ok ? 'Success' : 'Error');};
+  function reportError(j) {if (!j.ok) $.alert(j.message, 'Error');};  
 
   switch(what) {
 
@@ -37,12 +39,13 @@ function doit(what, vs) {
       break;
 
     case 'summary':
-      $('#activate-credit').click(function () {
-        post('setBit', {bit:'debt', on:1}, function (j) {
-          $.alert(j.message, 'Success');
-        });
-      });
+      $('#activate-credit').click(function () {post('setBit', {bit:'debt', on:1}, report);});
       break;
+      
+    case 'dollar-pool-offset':
+      $('#dp-offset').click(function () {post('dpOffset', {amount:vs['amount']}, report);});
+      break;
+        
 
     case 'change-ctty':
       $('#edit-community').on('change', function() {
@@ -51,10 +54,10 @@ function doit(what, vs) {
       });
 
       function changeCtty(newCtty, retro) {
-        post('changeCtty', {newCtty:newCtty, retro:retro}, function(j) {
-      //    var jo = JSON.parse(j);
+/*        post('changeCtty', {newCtty:newCtty, retro:retro}, function(j) {
           if (!j.ok) $.alert(j.message, 'Error');
-        });
+        }); */
+        post('changeCtty', {newCtty:newCtty, retro:retro}, reportError);        
       }
       break;
 
@@ -158,18 +161,18 @@ function doit(what, vs) {
     case 'invest-proposal':
       $('#add-co').click(function () {
         $('.form-item-fullName, .form-item-city, .form-item-serviceArea, .form-item-dob, .form-item-gross, .form-item-bizCats').show();
-        $('#edit-fullname, #edit-city, #edit-servicearea, #edit-dob, #edit-gross, #edit-bizcats').attr('required', 'yes');
+        require('#edit-fullname, #edit-city, #edit-servicearea, #edit-dob, #edit-gross, #edit-bizcats', true);
         $('.form-item-company').hide();
-        $('#edit-company').removeAttr('required');
+        require('#edit-company', false);
         $('#edit-fullname').focus();
       });
       $('#edit-equity-0, #edit-equity-1').click(function() {
-        var equity = $('input[name="equity"]:checked').val();
-        $('.form-item-equitySet').toggle(equity == 1);
-        $('.form-item-loanSet').toggle(equity != 1);
+        setInvestFields($('input[name="equity"]:checked').val() == 1);
+//        var equity = $('input[name="equity"]:checked').val();
       });
-      $('.form-item-equitySet').toggle($('#edit-equity').val());
-      $('.form-item-loanSet').toggle(!$('#edit-equity').val());
+      setInvestFields($('#edit-equity').val() == 1);
+//      $('.form-item-equitySet').toggle($('#edit-equity').val());
+//      $('.form-item-loanSet').toggle(!$('#edit-equity').val());
       break;
       
     case 'on-submit':
@@ -187,7 +190,7 @@ function doit(what, vs) {
     case 'bank-prefs':
       function showBank(show) {
         $('#connectFields2').toggle(show);
-        $('#edit-routingnumber, #edit-bankaccount, #edit-bankaccount2, #edit-refills-0, #edit-refills-1').attr('required', show);
+        require('#edit-routingnumber, #edit-bankaccount, #edit-bankaccount2, #edit-refills-0, #edit-refills-1', show);
         var text = show ? vs['connectLabel'] : vs['saveLabel'];
         $('#edit-submit').val(text);
         $('#edit-submit .ladda-label').html(text);
@@ -200,7 +203,7 @@ function doit(what, vs) {
 
       function showTarget(show) {
         $('#targetFields2').toggle(show);
-        $('#edit-target, #edit-achmin').attr('required', show);
+        require('#edit-target, #edit-achmin', show);
       }
       showTarget($('#edit-refills-1').attr('checked') == 'checked');
       $('#edit-refills-0').click(function() {showTarget(false);});
@@ -316,4 +319,15 @@ function doit(what, vs) {
       alert($('#script-scraps').attr('src').replace(/^[^\?]+\??/,''));
       
   }
+}
+
+function setInvestFields(equity) {        
+  $('.form-item-equitySet').toggle(equity);
+  $('.form-item-loanSet').toggle(!equity);
+  require('#edit-offering, #edit-price, #edit-return', equity);
+  require('#edit-offering--2, #edit-return--2', !equity);
+}
+
+function require(items, yesno) {
+  if (yesno) $(items).prop('required', true); else $(items).removeAttr('required');
 }

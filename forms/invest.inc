@@ -45,8 +45,8 @@ function formInvest($form, &$sta, $args) {
     $myRequest = $request ? item(u\fmtAmt($request, ''), t('Change request:'), t('Your pending request to %change your investment', 'change', $request < 0 ? t('reclaim part of') : t('increase'))) : NULL;
 //    $togAttrs = ray('on off offstyle', t('Sell'), t('Buy'), 'warning');
 //    $buyorsell = togFld('buysell', t('Buy or Sell:'), '', 1, $togAttrs);
-    $buy = submi(t('Buy'), '', 'md');
-    if ($stake or $request) $sell = submi(t('Sell'), '', 'md');
+    $buy = submi(t('Invest MORE'), '', 'md');
+    if ($stake or $request) $sell = submi(t('Invest LESS'), '', 'md');
     //$myStake = item(u\fmtAmt($stake, ''), t('Your investment:'));
 		$myVal0 = myClubVal($clubVal0);
 		$pct = $clubVal0 ? $myVal0 / $clubVal0 : 0;
@@ -123,13 +123,13 @@ function formInvest_submit($form, &$sta) {
       $mya->getFunds($short, t('for investment'));
     } else r\handleInvestmentRequest($stakeid, $msg);
   } elseif (!$buy and $request < 0) { // sell
-		$msg = t('Your request to reclaim %request of your investment will be handled by a club administrator when funds become available.', 'request', u\fmtAmt(-$request));
+		$msg = t('Your request to redeem %request of your investment will be handled by a club administrator when funds become available.', 'request', u\fmtAmt(-$request));
 	} else $msg = t('Your request has been adjusted accordingly.');
 
   say($msg);
 }
 
-//		list ($msg, $subs) = $mya->invoice(r\acct($mya->iclubid), $amount, t('reclaim investment'), ray('goods stakeid', FOR_STAKE, $stakeid));
+//		list ($msg, $subs) = $mya->invoice(r\acct($mya->iclubid), $amount, t('redeem investment'), ray('goods stakeid', FOR_STAKE, $stakeid));
 //		say($msg, $subs);
 
 /**

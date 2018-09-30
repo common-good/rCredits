@@ -46,7 +46,7 @@ function formInvestCashout_submit($form, &$sta) {
 		$amount = round($pct * -$request, 2);
 		if ($amount > 0 and ($partial or $sum + $amount <= $avail)) {
 			$DBTX = db_transaction();
-			$icA->pay(r\acct($uid), $amount, t('reclaim investment'), ray('goods stake', FOR_USD, 1));
+			$icA->pay(r\acct($uid), $amount, t('redeem investment'), ray('goods stake', FOR_USD, 1));
 			db\update('r_stakes', ray('stakeid request', $stakeid, round($request + $amount, 2)), 'stakeid');
 			$count++;
 			$sum += $amount;

@@ -21,7 +21,7 @@ function formInvestList($form, &$sta, $args = '') {
   $subtext = t('(click to see %lnk instead)<br>Choose an investment to see details%ratable.', '_lnk ratable', $lnk, @$actual ? '' : t(' or to rate it'));
   
   $sql = <<< X
-    SELECT i.vestid, u.fullName, i.investment, i.return, i.soundness AS sound, 
+    SELECT i.vestid, u.fullName, i.investment, i.types, i.return, i.soundness AS sound, 
       AVG(r.good) AS good, SUM(s.shares*i.price) AS value
     FROM r_investments i 
     LEFT JOIN users u ON u.uid=i.coid 
@@ -33,13 +33,14 @@ function formInvestList($form, &$sta, $args = '') {
 X;
   $q = db\q($sql, compact('clubid'));
 ///  debug(compact(ray('sql clubid')));
-  $fields = ray('investment return ' . (@$actual ? 'value' : 'sound good'));
+  $fields = ray('investment type return ' . (@$actual ? 'value' : 'sound good'));
   $hdrs = u\tableRow($fields);
   
   while ($row = $q->fetchAssoc()) {
     extract($row);
     $return = number_format($return, 1) . '%';
     $investment = substr("$fullName: $investment", 0, 80);
+    $type = (strpos($types, 'I') === FALSE or strpos($types, 'D') !== FALSE) ? t('equity') : t('loan');
     $href = BASE_URL . "/invest/rate/vestid=$vestid&clubid=$clubid";
     $investment = tags('a', $investment, compact('href'));
     $good = $good ? number_format($good, 1) : '?';

@@ -22,13 +22,21 @@ function formInvestRate($form, &$sta, $args = '') {
 
   $ks = ray('company city area dob gross desc');
   $fields = ray('investment offering price return terms assets character strength web history soundness');
-  $ds = ray(t('Company, City, Service area, Founded, Annual gross, Co description, Investment, Offering size, Share price, Predicted return, Terms, Company assets, Owner character, Financial strength, Web presence, Repayment history, Overall soundness'));
+  $ds = ray(t('Company, City, Service area, Founded, Annual gross, Co description, Project/Purpose, Offering size, Share price, Predicted return, Terms, Company assets, Owner character, Financial strength, Web presence, Repayment history, Overall soundness'));
   $ds = array_combine(array_merge($ks, $fields), $ds);
 
   $vs = [$coA->fullName, $coA->city, $coA->serviceArea, u\fmtDate($coA->dob, TRUE), $coA->gross, $coA->coDesc()];
   $vs = array_combine($ks, $vs) + just($fields, $res, TRUE); 
 
+  if (strpos($types, 'I') !== FALSE) {
+    $ds['offering'] = t('Target');
+    unset($ds['price']);
+    unset($vs['price']);
+    $ds['return'] = t('Interest Rate');
+  }
+  
   foreach (ray('gross assets offering') as $k) $vs[$k] = u\fmtAmt($vs[$k]);
+  $vs['return'] = number_format($vs['return'], 2) . '%';
   foreach ($vs as $k => $v) $ds[$k] = item($vs[$k], $ds[$k] . ':');
 
   if ($shares = db\get('shares', 'r_shares', compact('vestid'))) { // already invested

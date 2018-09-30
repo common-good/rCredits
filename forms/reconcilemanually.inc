@@ -6,16 +6,20 @@ use CG\Backend as be;
 use CG\Util as u;
 use CG\Db as db;
 
+include_once __DIR__ . '/reconcilecttyfund.inc'; // for its functions
+
 /**
  * Upload a bank statement (or two) to reconcile the community fund.
  * Handle two files, in case the Community Fund is split into INCOMING and OUTGOING
  */
-function formReconcileManually($form, &$sta) {
+function formReconcileManually($form, &$sta, $args = '') {
+  extract(just('asOf', $args));
+  
   $title = t('Reconcile Community Fund Discrepancies');
 	$subtext = t('<p>Here is a list of all the transactions downloaded from the bank that have no clear corresponding transfer of dollars to or from the Community Fund.</p><ol><li>Select one or more downloaded (OFX) transactions (as few as possible).</li><li>Then select one or more corresponding batches, some of whose individual transfers add up to that same amount.</li><li>If the bank made a mistake and you need to compensate, put an amount in the "Create offset tx" field as well. This amount will be added to our record of how much is in the Community Fund bank account(s).</li><li>Click "Match".</li></ol>');
   
-  if (!$txs = getv('ofxTxs')) w\say(t('There are no unmatched downloaded (OFX) transactions.'), 'err');
   if (!$batches = getv('batches')) w\say(t('There are no unmatched bank transfer batches.'), 'err');
+  if (!$txs = getv('ofxTxs')) $buttons = offerOffsetTransfer(getv('reconciledAsOf'));
   
   foreach ($txs as $t => $tx) {
     extract(just(OFX_TX_FLDS, $tx)); // trnType dtPosted trnAmt fitId name memo
@@ -41,8 +45,8 @@ function formReconcileManually($form, &$sta) {
   $form['offset'] = textFld(t('Create offset tx:'), [t('Amount')]);
   $form['memo'] = textFld(t('Memo:'), [t('Description'), t('A positive amount here reflects a positive transaction reported by the bank, that has no bearing on any %PROJECT account.')]);
   $form['submit'] = t('Match');
-
-  return cgform(compact(ray('title subtext')) + $form);
+  
+  return cgform(compact(ray('title subtext buttons')) + $form);
 }
 
 function formReconcileManually_validate($form, &$sta) {

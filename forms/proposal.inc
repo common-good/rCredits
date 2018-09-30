@@ -151,7 +151,7 @@ function formProposal_submit($form, &$sta) {
   $dbFields = 'event project categories overview purpose systemic where when until how amount recovery budgetTotal budget contingency qualifications evaluation name contact phone email sponsor';
   $input['categories'] = join(' ', array_keys($input['cats']));
 	
-	foreach ($input['recovery'] as $k => $v) u\setBit($recs, $k);
+	foreach (@$input['recovery'] ?: [] as $k => $v) u\setBit($recs, $k);
 	$input['recovery'] = @$recs ?: 0;
   db\insert('r_proposals', $info = just($dbFields, $input));
   r\tellCO('funding proposal received', $info);
