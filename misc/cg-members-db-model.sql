@@ -26168,13 +26168,28 @@ CREATE TABLE `r_usd` (
   `payee` bigint(20) DEFAULT NULL COMMENT 'CG account record ID',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was created',
   `completed` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was completed',
-  `tid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID',
-  `risk` float DEFAULT NULL COMMENT 'suspiciousness rating',
-  `risks` bigint(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'list of risk factors',
   `deposit` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transfer check was printed and deposited',
   `bankAccount` blob COMMENT 'Bank account for the transfer',
+  `risk` float DEFAULT NULL COMMENT 'suspiciousness rating',
+  `risks` bigint(20) UNSIGNED NOT NULL DEFAULT '0' COMMENT 'list of risk factors',
   `channel` tinyint(4) DEFAULT NULL COMMENT 'through what medium was the transaction entered'
+  -- `tid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Record of USD (Dwolla) transactions in the region';
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `r_usd2`
+--
+
+CREATE TABLE `r_usd2` (
+  `id` bigint(20) NOT NULL COMMENT 'record ID',
+  `type` char(1) NOT NULL COMMENT 'transaction type (S=service charge, T=transfer between accounts)',
+  `amount` decimal(11,2) DEFAULT NULL COMMENT 'amount of transfer',
+  `completed` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was completed',
+  `bankTxId` bigint(20) NOT NULL DEFAULT '0' COMMENT 'bank transaction id',
+  `memo` text NOT NULL COMMENT 'transaction description (from bank)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Record of transfers to or from a bank account';
 
 -- --------------------------------------------------------
 
@@ -26359,7 +26374,9 @@ CREATE TABLE `users` (
   `notices` tinytext COMMENT 'when to send what kind of notice',
   `lastip` varchar(39) DEFAULT NULL COMMENT 'latest IP address used',
   `special` longtext COMMENT 'special transient data',
-  `iCode` int(11) DEFAULT NULL COMMENT 'sequence number of helper invitation'
+  `iCode` int(11) DEFAULT NULL COMMENT 'sequence number of helper invitation',
+  `email` varchar(254) DEFAULT NULL COMMENT 'encrypted email address'
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Stores user data.';
 
 --
@@ -27005,6 +27022,13 @@ ALTER TABLE `r_usd`
   ADD KEY `created` (`created`);
 
 --
+-- Indexes for table `r_usd2`
+--
+ALTER TABLE `r_usd2`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `created` (`completed`);
+
+--
 -- Indexes for table `r_user_industries`
 --
 ALTER TABLE `r_user_industries`
@@ -27318,6 +27342,12 @@ ALTER TABLE `r_txs`
 --
 ALTER TABLE `r_usd`
   MODIFY `txid` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'the unique transaction ID';
+
+--
+-- AUTO_INCREMENT for table `r_usd2`
+--
+ALTER TABLE `r_usd2`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT 'the unique transaction ID';
 
 --
 -- AUTO_INCREMENT for table `r_user_industries`
