@@ -13,7 +13,7 @@ function formInvestBuySell($form, &$sta, $args = '') {
   global $mya;
   extract(just('vestid', $args));
   if (!@$vestid) return w\go('/page-not-found');
-  $q = db\q('SELECT i.coid, i.clubid, COUNT(shid) AS `count`, SUM(shares) AS shares, SUM(pending) AS pending FROM r_investments i LEFT JOIN r_shares s ON s.vestid=i.vestid WHERE i.vestid=:vestid', compact('vestid'));
+  $q = db\q('SELECT i.coid, i.clubid, i.types, COUNT(shid) AS `count`, SUM(shares) AS shares, SUM(pending) AS pending FROM r_investments i LEFT JOIN r_shares s ON s.vestid=i.vestid WHERE i.vestid=:vestid', compact('vestid'));
   if ($res = $q->fetchAssoc()) {
     extract($res);
     $pending += 0; $shares += 0; // convert to numeric
@@ -35,7 +35,7 @@ X
   $submit = fieldSet('submit2', compact('buy', 'sell'), ' ');
   $ourShares = item($shares, t('Current shares:'));
   $shares = textFld($shares ? t('Buy or sell:') : t('Shares to buy:'), [t('Number of shares'), $ifSelling . $ifSellingMore], required());
-  $old = hidFld(serialize(compact(ray('vestid coid clubid count'))));
+  $old = hidFld(serialize(compact(ray('vestid coid clubid types count'))));
 
   return cgform(compact(ray('title subtext ourShares selling shares submit old')));
 }
@@ -48,8 +48,10 @@ function formInvestBuySell_validate($form, &$sta) {
 
 function formInvestBuySell_submit($form, &$sta) {
   extract(just('shares old', $sta['input']));
-  extract(just('vestid coid clubid count', unserialize($old)));
+  extract(just('vestid coid clubid types count', unserialize($old)));
   
+  $equity = (strpos($types, 'I') === FALSE);
+  $type = $equity ? t('investment') : t('loan');
   $price = db\get('price', 'r_investments', compact('vestid'));
   $total = round($shares * $price, 2);
   $sharesDpy = number_format($shares, 0);
@@ -59,13 +61,18 @@ function formInvestBuySell_submit($form, &$sta) {
   
   $DBTX = \db_transaction();
   if (op($sta) == 'buy') {
-    list ($index, $subs) = $clubA->pay($coA, $total, t('investment'), ray('investment goods', 1, FOR_USD));
-    $extraMsg = @$subs['success'] ? t('You successfully purchased %amt shares of %co at %price.', 'amt co price', $sharesDpy, $coA->fullName, $priceDpy) : t('No shares were purchased.');
-    if (@$subs['success']) db\insert('r_shares', ray('vestid shares when', $vestid, $shares, NOW));
+    list ($index, $subs) = $clubA->pay($coA, $total, $type, ray('investment goods', 1, FOR_USD));
+    $success = @$subs['success'];
+    if ($equity) {
+      $extraMsg = $success ? t('You successfully purchased %amt shares of %co at %price.', 'amt co price', $sharesDpy, $coA->fullName, $priceDpy) : t('No shares were purchased.');
+    } else $extraMsg = $success ? t('You loaned %amt to %co.', 'amt co', u\fmtAmt($shares), $coA->fullName) : t('Nothing was loaned.');
+    if ($success) db\insert('r_shares', ray('vestid shares when', $vestid, $shares, NOW));
   } else { // sell
 //    $shid = db\min('shid', 'r_shares', compact('vestid'));
     $shid = db\insert('r_shares', ray('vestid shares pending when', $vestid, 0, -$shares, NOW));
-    $for = t('reclaim investment: %amt at %price', 'amt price', $sharesDpy, $priceDpy);
+    if ($equity) {    
+      $for = t('redeeming investment: %amt shares at %price', 'amt price', $sharesDpy, $priceDpy);
+    } else $for = t('redeeming loan');
     list ($index, $subs) = $clubA->invoice($coA, $total, $for, ray('investment goods shid', 1, FOR_USD, $shid));
 //    if (@$count + 0 == 1) { // the usual case -- one shares record
     $extraMsg = '';

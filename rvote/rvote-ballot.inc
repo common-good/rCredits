@@ -756,13 +756,13 @@ EOF
 function gradingWelcome($endDate, $proxLink) {
   global $base_url;
 
-  $title = w\item(t('Grade Funding Proposals'));
+  $title = w\item(t('Grade Community Investment Proposals'));
   $subtext = w\item(t(<<<EOF
-  Help grade specific proposals within our community's chosen funding priorities! You can grade just one or as many as you want. The community's chosen funding priorities are Renewable Energy, Small Business Development, Social Justice, Food Systems, and The Arts.<br><br>
+  Help grade specific proposals within our community's chosen investment priorities! You can grade just one or as many as you want. The community's chosen investment priorities are Renewable Energy, Small Business Development, Social Justice, Food Systems, and The Arts.<br><br>
   
-  You will be asked to give the proposal a grade (A+ to E) for each of five questions (see below). The remaining 30 points are assigned automatically based on amount, timing, location, etc. We're not looking for comparative grades at this stage. For example, if all of the proposals are very much in line with the community's funding priorities, you could give them all an A for that question.<br>
+  You will be asked to give the proposal a grade (A+ to E) for each of five questions (see below). The remaining 30 points are assigned automatically based on amount, timing, location, etc. We're not looking for comparative grades at this stage. For example, if all of the proposals are very much in line with the community's investment priorities, you could give them all an A for that question.<br>
   <ul>
-    <li>How well does the project support our %PROJECT community funding priorities? (20 points)</li>
+    <li>How well does the project support our %PROJECT community investment priorities? (20 points)</li>
     <li>Overall, how clearly doable is the project? (20 points)</li>
     <li>Ability to manage the project and funds effectively. (15 points)</li>
     <li>Evaluation plan. (10 points)</li>

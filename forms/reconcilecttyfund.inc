@@ -13,11 +13,12 @@ use CG\Db as db;
 function formReconcileCttyFund($form, &$sta) {
   $title = t('Reconcile Community Fund');
 	$subtext = t('Upload a Community Fund bank statement file (in OFX format). Or two files, if the Community Fund is split.');
+  if ($reconciledAsOf = getv('$reconciledAsOf') and !$txs = getv('ofxTxs')) $buttons = offerOffsetTransfer($reconciledAsOf);
   $file1 = fileFld();
   $file2 = fileFld();
   $submit = t('Upload and Reconcile');
 
-  return cgform(compact(ray('title subtext file1 file2 submit')));
+  return cgform(compact(ray('title subtext buttons file1 file2 submit')));
 }
 
 function formReconcileCttyFund_validate($form, &$sta) {
@@ -139,17 +140,13 @@ function formReconcileCttyFund_submit($form, &$sta) {
 		$dt = strtotime($dtPosted);
     $txidSign = reversing($name, $trnType) ? '<0' : '>0';
   	$where = ":dt BETWEEN deposit AND deposit+1*:MONTH_SECS AND amount=:trnAmt AND txid$txidSign AND bankTxId=0 ORDER BY deposit";
-//      debug("DEBIT of $trnAmt ($dtPosted) where=$where dt=$dt");
 		if ($ray = db\get('txid,deposit', 'r_usd', $where, $subs = compact('dt', 'trnAmt'))) {
-      /// debug("individual txid=$txid dt=$dt deposit=$deposit");
       extract($ray);
       db\update('r_usd', compact('bankTxId', 'txid'), 'txid');
       $bi = ($txidSign == '<0' ? 'B' : ($trnAmt < 0 ? 'O' : 'I')) . $deposit;
       $batAmt = @$batches[$bi];
       u\EXPECT($batAmt, 'logic error in reconcile reversal');
-  //        debug("Fixing BAD: txid=$txid dt=$dt deposit=$deposit batAmt=$batAmt trnAmt=$trnAmt");
       if ($batAmt - $trnAmt) { // this was a batch with more than one transaction
-  //          debug("subtracting $trnAmt from $batAmt");
         $batches[$bi] -= $trnAmt; // make the rest of this batch recognizable
       } elseif ($batAmt) unset($batches[$bi]);
       unset($txs[$t]);
@@ -168,17 +165,19 @@ function formReconcileCttyFund_submit($form, &$sta) {
     $batOnly += $batAmt;
   }
 	
+  $asOf = strtotime($dtAsOf);
+  setv('$reconciledAsOf', $asOf);
   setv('batches', $batches);
   setv('ofxTxs', $txs);
-//	if (@$errs) debug($errs);
+	if (@$errs) say(join('<br>', $errs));
   $where = 'bankTxId<>0 AND deposit<=:NOW+:DAY_SECS';
 //  $bal = db\sum('amount', $table, $where); // <=:NOW is a placeholder for when we want earlier balances
 	$bal = db\sum('amount', 'r_usd', $where);
 	$bal += db\sum('amount', 'r_usd2', str_replace('deposit', 'completed', $where));
 	w\say(t('<p>Reconciled Community Fund balance as of today is %bal.</p>', 'bal', u\fmtAmt($bal)));
-	w\say(t('<p>Bank reports a balance of %ofxBal as of %asOf.</p>', 'ofxBal asOf', u\fmtAmt($balAmt), u\fmtDate(strtotime($dtAsOf), TRUE)));
+	w\say(t('<p>Bank reports a balance of %ofxBal as of %asOf.</p>', 'ofxBal asOf', u\fmtAmt($balAmt), u\fmtDate($asOf, TRUE)));
 	w\say(t('ofxOnly=%ofxOnly batOnly=%batOnly', compact(ray('tot ofxOnly batOnly'))));
-  if ($batches or $txs) w\go('/sadmin/reconcile-ctty-fund/manually');
+  if ($batches or $txs) w\go("/sadmin/reconcile-ctty-fund/manually/asOf=$asOf");
 }
 
 /**
@@ -200,3 +199,22 @@ function ofxData($ks, $s, $multi = FALSE) {
 function reversing($name, $trnType) {
   return (($trnType == 'DEBIT' and strpos($name, 'DDA DEBIT') !== FALSE) or strpos($name, 'RETURN SETTLE') !== FALSE);
 }    
+
+/**
+ * Display some basic facts about the Dollar Pool's reconciledness and return a button to create an offset transfer.
+ */
+function offerOffsetTransfer($asOf) {
+  w\say(t('There are no unmatched downloaded (OFX) transactions.'));
+  if ($offsets = db\sum('amount', 'r_usd2')) { // include both reconciled and unreconciled
+    if ($offsets -= r\acct(DOLLAR_POOL)->waitingFromBank()) {
+      $button = btn('', t('Request a transfer of %amt from Checking to cover fees and bank errors', 'amt', u\fmtAmt($offsets)), 'warning', 'xs', ray('id', 'dp-offset'));
+    } else say(t('All offset transfers have been completed and reconciled.'));
+  }
+  $btidTomorrow = floor($asOf / DAY_SECS) + 1;
+  $btidTomorrow = 0 + ($btidTomorrow . str_repeat('0', isDEV ? 5 : 12));
+  $dpBal = $offsets + db\sum('amount', 'r_usd', 'bankTxId<>0 AND bankTxId<:btidTomorrow', compact('btidTomorrow'));
+  say(t('Total Dollar Pool balance as of %dt is %amt', 'dt amt', u\fmtDate($asOf, TRUE), u\fmtAmt($dpBal)));
+  jsx('dollar-pool-offset', 'amount', @$offsets);
+ 
+  return @$button;
+}

@@ -1,5 +1,38 @@
 _____________________________________________
 
+//  } else $subtext = item(t('There are no new transfer requests.'));
+  
+/*
+  $ways = [t('IN') => '(amount>0 AND txid>0)', t('OUT') => '(amount<0 AND txid>0)']; // , t('BAD') => 'txid<0'];
+  if (r\acct()->superAdmin) foreach ($ways as $way => $where) {  
+    $count = db\count('r_usd', $where . ' AND deposit=0');
+//    $previous = db\get('MAX(deposit)', 'r_usd', $where);
+//    if ($previous == 1) $previous = 0; // handle transition from Dwolla
+//    $oldCount = $previous ? db\count('r_usd', $where . ' AND deposit=:previous', compact('previous')) : 0;
+    $count = item(t('Checks') . " $way: $count");
+//    if ($previous) $reprint = boxFld('', t('Include/Reprint ') . $oldCount . t(' checks from ') . strftime('%d-%b', $previous) . '?'); else unset($reprint);
+// fails    if ($count or $previous) $submit = submit(t('Print checks ' . $way), 'primary', 'md', w\away());
+//    if ($count or $previous) 
+    $submit = submit($way == t('IN') ? t('Print checks IN') : t('ACH Batch OUT'));
+//    $previous = hidFld($previous);
+///    echo "\n\n\nway=$way " . print_r(u\prefixKeys($way, compact(ray('count reprint submit previous'))), 1) . "\n\n\n";
+    $$way = w\fieldSet("_$way", u\prefixKeys($way, compact(ray('count submit'))), BARE);
+  }
+  */
+/*
+function formDeposits_submit($form, &$sta) {
+  $op = w\op($sta);
+  $way = str_replace('submit', '', $op); // cute. INsubmit or OUTsubmit -> IN or OUT
+//  $previous = @$sta['input'][$way . 'previous'];
+//  w\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1");
+  $func = ($way == 'IN' or time() < strtotime('1/10/2017')) ? 'checks' : 'achs';
+  w\go("/sadmin/$func/way=$way&date=0&mark=1");
+//  foreach (['reprint', 'previous'] as $k) $$k = @$sta['input'][$way . $k];
+//  w\go("sadmin/checks/way=$way&date=0&previous=$previous&mark=1&reprint=" . @$reprint);
+}
+*/
+_____________________________________________
+
 //  extract(just('rebate bonus xfee', $data));
 //  $otherFor = str_replace($tid, $otherTid, $myFor);
 //  $what = u\order($type == 'payment', $myFor, $otherFor);

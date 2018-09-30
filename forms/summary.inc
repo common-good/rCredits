@@ -181,8 +181,8 @@ function formSummary_submit($form, &$sta) {
   global $mya;
   $op = op($sta);
 
-  if ($op == 'secureMsgs') return w\go('', showSecureMessages());
   if (!$mya->admin2) return; // hack attempt
+  if ($op == 'secureMsgs') return w\go('', showSecureMessages());
 
   extract($args = just('uid who legalName federalId creditLimit tickle note notes helper mediaConx moves rTrader risks adminable', $sta['input']));
 /**/  if (!$mya->cAdmin) u\EXPECT(!array_diff(array_keys($args), ray('uid tickle note')), 'too many unpermitted changing fields in ' . print_r($args, 1));
@@ -207,6 +207,8 @@ function formSummary_submit($form, &$sta) {
   
   $DBTX = \db_transaction();
 
+  if ($mya->cAdmin or $mya->admin) setRisksAndFlags($mya, @$risks, @$adminable); // don't test for isset (allow turning off all bits); must precede ->activate() because that function sets ssnOff bit
+    
   if (!$mya->isCtty) {
     $fullName = $mya->fullName;
     if (FALSE and !$mya->confirmed and @$helper and @$helper != $mya->helper) { // helper has not confirmed yet (must be self-signup)
@@ -220,7 +222,6 @@ function formSummary_submit($form, &$sta) {
   }
 
   if (isset($rTrader)) $mya->setBit(B_OK, @$rTrader, TRUE);
-  if ($mya->cAdmin or $mya->admin) setRisksAndFlags($mya, @$risks, @$adminable); // don't test for isset (allow turning off all bits)
   if ($mya->helper and ($mya->ok or !@$helper)) unset($helper); // don't overwrite if too late or empty
 //  $floor = -$creditLimit; // floor is calculated automatically
   $mya->update(compact(ray('legalName federalId tickle notes helper mediaConx moves')));

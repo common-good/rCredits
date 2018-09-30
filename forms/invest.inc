@@ -18,29 +18,40 @@ function formInvest($form, &$sta, $args) {
     $subtext = t('There is no investment club in your community at this time. Consider starting one! Your %PROJECT community administrator can set it up for you.');
     return cgform(compact(ray('title subtext')));
   }
+
+  $clubVal0 = clubVal($investments0, $liquid0, $reserve0);
+  $buttons0 = btn("/invest/list/clubid=$clubid", t('List Investments'), 'success');
   
-  if ($res = db\get('*', 'r_stakes', compact(ray('uid clubid')))) { // member!
+  if ($mya->isIClub) { // the club itself
+    $buttons = $buttons0
+      . btn("/invest/propose/clubid=$clubid", t('Propose'))
+		  . btn("/invest/cashout/clubid=$clubid", t('Requests to Cash Out'));
+    $count0 = db\get('COUNT(DISTINCT uid)', 'r_stakes', compact('clubid'));
+    $count = item(number_format($count0), t('Member Count:'));
+		$investments = item(u\fmtAmt($investments0), t('Investments:'));
+		$liquid = item(u\fmtAmt($liquid0), t('Liquid:'));
+		$reserve = textFld(t('Loss/Expense Reserve:'), '', required(u\fmtAmt($reserve0)));
+		$clubVal = item(u\fmtAmt($clubVal0), t('Club Net Value:'));
+    $submit = t('Save');
+  } elseif ($isMember = $res = db\get('*', 'r_stakes', compact(ray('uid clubid')))) { // member!
     extract(just('request stake', $res));
 //    extract(just('stake', $res));
 //		$request = db\sum('amount', 'r_invoices', 'status=:TX_PENDING AND payer=:clubid AND payee=:uid', compact('clubid', 'uid'));
     $old = hidFld(serialize(just('stakeid clubid stake request requestedOut', $res)));
     $request += 0; // enable if($request)
     $stake += 0;
-    $buttons = btn("/invest/list/clubid=$clubid", t('List Investments'), 'success');
-    if ($mya->icAdmin) $buttons .= btn("/invest/propose/clubid=$clubid", t('Propose'), 'warning');
-		if ($mya->icAdmin) $buttons .= btn("/invest/cashout/clubid=$clubid", t('Requests to Cash Out'), 'warning');
+    $buttons = $buttons0;
     $amount = textFld($stake ? t('Buy or sell:') : t('Invest:'), [t('Amount'), t('If you reduce your investment amount, it will take effect when funds become available.') . $request ? t('  Whatever amount you request here will be in addition to your current request.') : ''], required()); // must be before request item
     $myRequest = $request ? item(u\fmtAmt($request, ''), t('Change request:'), t('Your pending request to %change your investment', 'change', $request < 0 ? t('reclaim part of') : t('increase'))) : NULL;
 //    $togAttrs = ray('on off offstyle', t('Sell'), t('Buy'), 'warning');
 //    $buyorsell = togFld('buysell', t('Buy or Sell:'), '', 1, $togAttrs);
-    $buy = submi(t('Buy'), '', 'md');
-    if ($stake or $request) $sell = submi(t('Sell'), '', 'md');
+    $buy = submi(t('Invest MORE'), '', 'md');
+    if ($stake or $request) $sell = submi(t('Invest LESS'), '', 'md');
     //$myStake = item(u\fmtAmt($stake, ''), t('Your investment:'));
-    $clubVal = clubVal($investments, $liquid, $reserve);
-		$myVal = myClubVal($clubVal);
-		$pct = $clubVal ? $myVal / $clubVal : 0;
-		$clubVal = item(t('%val (%liquid liquid)', 'val liquid', u\fmtAmt($clubVal), u\fmtAmt($liquid)), t('Club Value:'));
-		$myShare = item(tr('%amt (%pct)', 'amt pct', u\fmtAmt($myVal), u\fmtAmt($pct, '%')), t('Your Share:'));
+		$myVal0 = myClubVal($clubVal0);
+		$pct = $clubVal0 ? $myVal0 / $clubVal0 : 0;
+		$clubVal = item(t('%val (%liquid liquid)', 'val liquid', u\fmtAmt($clubVal0), u\fmtAmt($liquid0)), t('Club Value:'));
+		$myShare = item(tr('%amt (%pct)', 'amt pct', u\fmtAmt($myVal0), u\fmtAmt($pct, '%')), t('Your Share:'));
     $submit = fieldSet('submit2', compact('buy', 'sell'), ' ');
   } else { // not a member yet
     $old = hidFld(serialize(compact('clubid')));
@@ -56,15 +67,20 @@ X
     $submit = t('Join');
   }
 
-  return cgform(compact(ray('title subtext buttons signedBy old clubVal myShare myRequest amount submit')));
+  return cgform(compact(ray('title subtext buttons signedBy old count investments liquid reserve clubVal myShare myRequest amount submit')));
 }
 
 function formInvest_validate($form, &$sta) {
   global $mya;
 
-  extract(just('signedBy amount old', $sta['input']));
+  extract(just('signedBy amount old reserve', $sta['input']));
 
   if (isset($signedBy)) return !w\badSignature($sta);
+  
+  if (isset($reserve)) {
+    if ($err = u\badAmount($reserve)) return say($err, 'reserve');
+    return;
+  }
   
  // buy or sell
   if ($err = u\badAmount($amount, '>0')) return say($err, 'amount');
@@ -80,7 +96,7 @@ function formInvest_validate($form, &$sta) {
 
 function formInvest_submit($form, &$sta) {
   global $mya;
-  extract(just('signedBy old amount short', $sta['input']));
+  extract(just('signedBy old amount short reserve', $sta['input']));
   
   if (@$signedBy) {
     extract(just('clubid', unserialize($old)));
@@ -88,6 +104,12 @@ function formInvest_submit($form, &$sta) {
     return say(t('You are now a member of the club!'));
   }
 
+  if (isset($reserve)) {
+    u\EXPECT($mya->id == $mya->iclubid, 'setting reserve when not club');
+    $mya->update('minimum', $reserve);
+    return say(t('info saved'));
+  }
+  
   // buy or sell  
   extract(just('stakeid clubid stake request requestedOut', unserialize($old)));
   $buy = (op($sta) == 'buy');
@@ -97,17 +119,17 @@ function formInvest_submit($form, &$sta) {
   
   if ($buy and $request > 0) {
     if (@$short) {
-      say(t('You do not currently have enough funds in your %PROJECT account for that investment, so %short will be drawn automatically from your bank account. Once that transfer is complete, your requested investment will be made automatically.', 'short', u\fmtAmt($short)));
+      $msg = t('You do not currently have enough funds in your %PROJECT account for that investment, so %short will be drawn automatically from your bank account. Once that transfer is complete, your requested investment will be made automatically.', 'short', u\fmtAmt($short));
       $mya->getFunds($short, t('for investment'));
     } else r\handleInvestmentRequest($stakeid, $msg);
   } elseif (!$buy and $request < 0) { // sell
-		$msg = t('Your request to reclaim %request of your investment will be handled by a club administrator when funds become available.', 'request', u\fmtAmt(-$request));
+		$msg = t('Your request to redeem %request of your investment will be handled by a club administrator when funds become available.', 'request', u\fmtAmt(-$request));
 	} else $msg = t('Your request has been adjusted accordingly.');
 
   say($msg);
 }
 
-//		list ($msg, $subs) = $mya->invoice(r\acct($mya->iclubid), $amount, t('reclaim investment'), ray('goods stakeid', FOR_STAKE, $stakeid));
+//		list ($msg, $subs) = $mya->invoice(r\acct($mya->iclubid), $amount, t('redeem investment'), ray('goods stakeid', FOR_STAKE, $stakeid));
 //		say($msg, $subs);
 
 /**

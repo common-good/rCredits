@@ -25,7 +25,7 @@ function ajax() {
 //  $mya = r\acct($myid, $aid);
 /**/  lug(compact(ray('op data myid aid')));
   $data = json_decode($data); // must be passed encoded or jQuery post() passes null
-  $mya = r\acct($myid); // usually relevant
+  $mya = r\acct($myid, $aid); // usually relevant
   
   if ($op == 'ssn') { // verify member's SSN
     if ($mya) $mya->ssnCheck();
@@ -41,6 +41,12 @@ function ajax() {
     if ($a = r\acct($uid) and $b = u\consta('b', $bit) and $b < B_ADMIN2) {
       $a->setBit($b, $on);
     } else ajaxErr(t('nope'));
+  } elseif ($op == 'dpOffset') {
+    if (!$mya->superAdmin) ajaxErr(t('You do not have permission.'));
+    extract(just('amount', $data));
+    if (!is_numeric($amount) or $amount <= 0) ajaxErr('bad dollar pool offset transfer amount: ' . $amount);
+    r\acct(1)->bank(-amount, $msg);
+    ajaxMsg($msg);
   } elseif ($op == 'who') {
     extract(just('who question amount', $data));
     $amtDpy = u\fmtAmt($amount);
@@ -68,7 +74,7 @@ function ajax() {
 }
 
 function ajaxErr($msg) {ajaxMsg($msg, 0);}
-function ajaxMsg($msg = '', $ok = 1) {ajaxRet(['message' => $msg], $ok);}
+function ajaxMsg($message = '', $ok = 1) {ajaxRet(compact('message'), $ok);}
 function ajaxRet($data, $ok = 1) {
   $data = json_encode($data + compact('ok'));
   u\loga('ajax', $data);

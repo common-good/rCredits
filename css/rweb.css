@@ -382,10 +382,23 @@ body.page-prox-pagedemocracydograde #edit-title {margin-bottom:0;}
 #frm-investpropose #edit-soundness,
 #frm-investpropose #edit-strength,
 #frm-investpropose #edit-offering,
+#frm-investpropose #edit-offering--2,
 #frm-investpropose #edit-price,
+#frm-investpropose #edit-price--2,
+#frm-investpropose #edit-return,
+#frm-investpropose #edit-return--2,
 #frm-investpropose #edit-web,
-#frm-investpropose #edit-repayments,
-#frm-investpropose #edit-return {width:150px; display:inline-block; margin-right:5px;}
+#frm-investpropose #edit-repayments {width:150px; display:inline-block; margin-right:5px;}
+
+#frm-investpropose .form-type-fieldset>label {width:25px; min-width:0;}
+
+/*#frm-investpropose #edit-offering,
+#frm-investpropose #edit-offering--2,
+#frm-investpropose #edit-price,
+#frm-investpropose #edit-price--2,
+#frm-investpropose #edit-return,
+#frm-investpropose #edit-return--2,
+#frm-investpropose .form-item-exempt.radio-inline {margin-left:15px;}*/
 
 /* Invest Rate */
 #frm-investrate .form-group {margin-bottom:0;}

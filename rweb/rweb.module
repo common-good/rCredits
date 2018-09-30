@@ -88,10 +88,10 @@ function rweb_menu($submenu = '') {
     
     'invest' => ['norm', t('Invest'), 'Invest 1', 'manage ok icadmin'], // icadmin is temporary
     'invest/list' => ['call', t('List Investments'), 'InvestList 2', 'manage ok investor'],
-    'invest/cashout' => ['call', t('Handle Requests to Cash Out Investments'), 'InvestCashout 2', 'manage ok investor icadmin'],
-    'invest/propose' => ['call', t('Propose an Investment'), 'InvestPropose 2', 'manage ok investor icadmin'],
+    'invest/cashout' => ['call', t('Handle Requests to Cash Out Investments'), 'InvestCashout 2', 'manage ok co icadmin'],
+    'invest/propose' => ['call', t('Propose an Investment'), 'InvestPropose 2', 'ok co icadmin'],
     'invest/rate' => ['call', t('Rate an Investment'), 'InvestRate 2', 'manage ok investor'],
-    'invest/buy-or-sell' => ['call', t('Buy or Sell a Club Investment'), 'InvestBuySell 2', 'manage ok investor icadmin'],
+    'invest/buy-or-sell' => ['call', t('Buy or Sell a Club Investment'), 'InvestBuySell 2', 'manage ok co icadmin'],
     
     'history' => ['norm', t('History'), 'History', 'read'],
     'history/transactions' => ['sub', t('Transactions'), 'Txs 2', 'read', '', t(''), 'list'],
@@ -205,7 +205,7 @@ function rweb_menu($submenu = '') {
     'sadmin/achs' => ['call', t('ACHs'), '2', 'superadmin', 'achBatch'],
     'sadmin/changes' => ['call', t('See Changes'), 'SeeChanges 2', 'cadmin'],
 		'sadmin/reconcile-ctty-fund' => ['call', t('Reconcile Community Fund'), 'ReconcileCttyFund', 'superadmin'],
-    'sadmin/reconcile-ctty-fund/manually' => ['call', t('Reconcile Manually'), 'ReconcileManually', 'superadmin'],
+    'sadmin/reconcile-ctty-fund/manually' => ['call', t('Reconcile Manually'), 'ReconcileManually 3', 'superadmin'],
     'sadmin/organizer-list' => ['call', t('Organizer List'), 'OrganizerList 2', 'admin'],
     'rcredits/util' => ['call', 'Util', '2', 'superadmin', 'util'],
     'sadmin/recover' => ['call', t('Empty'), 'TestRecovery 1', 'dev'], // also go here manually, if needed
