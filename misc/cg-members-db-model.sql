@@ -26592,7 +26592,7 @@ CREATE TABLE `x_txs` (
 CREATE TABLE `x_usd` (
   `deleted` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime record was deleted',
   `txid` bigint(20) NOT NULL COMMENT 'the unique transaction ID',
-  `tid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID',
+  -- `tid` int(11) DEFAULT NULL COMMENT 'payer''s transaction ID',
   `amount` decimal(11,2) DEFAULT NULL COMMENT 'amount of transfer',
   `payee` bigint(20) DEFAULT NULL COMMENT 'CG account record ID',
   `created` int(11) NOT NULL DEFAULT '0' COMMENT 'Unixtime transaction was created',
