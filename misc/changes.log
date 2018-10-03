@@ -1,3 +1,7 @@
+2018-10-03
+. fixed PHP7 problems (empty implicit fields that should have been unset)
+. fixed tickle problem (buttons weren't working on summary page)
+
 2018-09-29
 . fixed bug that kept ssnOff from getting set
 . ajax now picks up agent ID, so changeBy field in r_changes gets set properly
