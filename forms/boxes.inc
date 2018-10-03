@@ -12,7 +12,7 @@ use CG\Db as db;
  */
 function formBoxes($form, &$sta) {
   $myid = r\acct()->id;
-  if ($confirm = sureForm($sta)) return $confirm; // confirm only deletion
+//  if ($confirm = sureForm($sta)) return $confirm; // confirm only deletion
   if (form_step($sta, $info) == 'prove') {
     $new = u\fmtPhone($sta['storage']['values']['new']);
     $form = array(
@@ -60,7 +60,7 @@ function formBoxes($form, &$sta) {
 
 function formBoxes_validate($form, &$sta) {
   $myid = r\acct()->id;
-  if (confirming_v($sta)) return;
+//  if (confirming_v($sta)) return;
   extract(just('op code boxes new', $sta['values'])); // values not input
   $op = op($sta);
 
@@ -70,7 +70,7 @@ function formBoxes_validate($form, &$sta) {
   } elseif ($op == 'delete') {
     if (no_selection($boxes)) {
       if ($new) $op = 'add'; else return say('nothing selected'); // user probably pressed Enter after specifying a new cell
-    } else confirm(t('confirm delete cell'), $sta);
+    }// else confirm(t('confirm delete cell'), $sta);
   }
 
   if ($op == 'save') {
@@ -81,7 +81,7 @@ function formBoxes_validate($form, &$sta) {
 }
 
 function formBoxes_submit($form, &$sta) {
-  if (confirming_s($sta)) return;
+//  if (confirming_s($sta)) return;
   
   extract(just('op code boxes new', $sta['values'])); // values not input
   $op = op($sta);

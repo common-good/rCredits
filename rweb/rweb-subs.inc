@@ -433,8 +433,7 @@ function cgform($form, $onSubmit = '', $labeled = TRUE, $level = 0) {
   
   foreach ($form as $k => $v) if (substr($k, 0, 1) != '#') {
     $type = @$v['#type'];
-    $params = [$k => @$v['#value']];
-    if ($type == 'hidden') f('t.POST', $params); // fake post for tests
+    if ($type == 'hidden') f('t.POST', [$k => @$v['#value']]); // fake post for tests
     if ($type == 'fieldset') $form[$k] = cgform($form[$k], '', $labeled, $level + 1);
     if ($labeled and is_array($form[$k])) $form[$k]['#tabled'] = TRUE; // remember that form is laid out in a table (labels in left column)
   }
@@ -1848,7 +1847,7 @@ function downloadCheck($page) {
  * @param assoc $sta: (MODIFIED) with $sta['redirect'] set unless downloading
  */
 function dateRangeRedirect($page, &$sta) {
-  if (confirming_s($sta)) return;
+//  if (confirming_s($sta)) return;
 
   $sta['input']['states'] = @join(',', @$sta['input']['states'] ?: []);
   $query = http_build_query(just('states period starting ending', $sta['input']));
@@ -1880,93 +1879,6 @@ function rangeDates($period, $starting = '', $ending = '') {
   : strtotime($period == '-1' ? '1jan' : ($period == '-2' ? '1/1/2013' : "$ago ago"));
   return array(strtotime('today', $starting), strtotime('tomorrow', $ending) - 1, $period);
 }  
-
-/**
- * Set or report next step in form's workflow
- * Syntax:
- *   form_step($sta, $info, 'id of next step') -- sets the next step
- *   form_step($sta, $zot, NULL) -- sets the next step to none
- *   form_step($sta, $info) -- gets the name of the next step and (in $info) any parameters
- * @param string $next_step: a step id ('' means ignore argument, NULL means no next step)
- * @param array $info: associative array of parameters to next step (passed or returned)
- * @return string: the next step ('' if none)
- * @see also step_one() and previous_state()
- */
-function form_step(&$sta, &$info = NULL, $next_step = '') {
-  if (is_null($next_step)) { // set the next step (and args) to none
-    $sta['storage'] = NULL;
-    $sta['rebuild'] = TRUE;
-  } elseif ($next_step) { // set the next step (and args)
-    $sta['storage']['previous'][$next_step] = $sta;
-    $sta['storage']['step'] = $next_step;
-    $sta['storage']['values'] = $info;
-    $sta['rebuild'] = TRUE;
-  } else $info = @$sta['storage']['values']; // return args
-  
-  return @$sta['storage']['step']; // return the next step
-}
-
-function step_one(&$sta) {form_step($sta, $zot, NULL);}
-
-function previous_state(&$sta, $message = '', $args = []) {
-  if ($message) {
-    $sta = $sta['storage']['previous'][$sta['storage']['step']];
-    $sta['storage']['say'] = array($message, $args);
-  } else return @$sta['storage']['say'] ?: '';
-}
-
-/**
- * Say whether user has submitted the confirmation form (as opposed to the primary form)
- * The "v" verion is called from _validate, the "s" version from _submit.
- */
-function confirming_s(&$sta) {return ($sta['rebuild'] = isset($sta['confirm']));}
-function confirming_v(&$sta) {
-  if(@$sta['confirm']) {
-    extract($sta['input']);
-    $sta = $sta['submitted_state'];
-    if ($op == 'Cancel') {
-      $sta['rebuild'] = TRUE;
-      say('op canceled'); // not an error message, else confirmation form persists
-    }
-    return TRUE;
-  }
-  $sta['submitted_state'] = $sta;
-  return FALSE;
-}
-
-function confirm($msg, &$sta) {
-  global $testConfirmation; $testConfirmation = $msg;
-//  t\output(preg_replace('/\s*$\s*/sm', PHP_EOL, strip_tags($msg)), 'screen');
-  return ($sta['confirm'] = $msg);
-}
-
-/**
- * Replacement for \confirm_form: ask a confirmation question, with choices Okay or Cancel
- * @param assoc $sta: the form's status array
- *   'confirm': the question to 
- * @param string $title: header for the question (normally none)
- * @return a confirmation form (FALSE if there is no question to ask)
- */
-function sureForm(&$sta, $title = '') {
-  if (!@$sta['confirm']) return FALSE;
-//  if (!isset($sta['confirm'])) return FALSE;
-  
-  $title = item($title ?: t('Confirm'));
-  $question = item($sta['confirm']);
-  $confirm = submi(t('Okay'));
-  $cancel = submi(t('Cancel'));
-  $actions = w\fieldSet('actions', compact('confirm', 'cancel'));
-  $form = compact('title', 'question', 'actions');
-  $form['#skip_duplicate_check'] = TRUE; // Confirm form fails duplication check, as the form values rarely change -- so skip it.
-  $form['#attributes'] = array('class' => ray('confirmation'));
-//  $form['#validate'] = 'CG\\Web\\sureForm_validate';
-//  $form['#submit'] = 'CG\\Web\\sureForm_submit';
-//  $sta['rebuild'] = TRUE;
-
-  focusOn('confirm');
-
-  return cgform($form);
-}
 
 /**
  * Figure out who the user means, offering choices to disambiguate

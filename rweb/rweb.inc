@@ -486,12 +486,14 @@ function formShowDeposits($form, &$sta) {
 }
 
 /**
- * Show a page when someone scans an Common Good not with the CGPay app, for example with QRDroid.
+ * Show a page when someone scans a Common Good card not with the CGPay app, for example with QRDroid.
  * RC4.ME and RC2.ME must do some interpretation and redirection (NYI on those sites)
  */
 function formI($form, &$sta, $who = '') {
   $a = r\acct($who);
-  return w\go(($a and $a->co) ? "member/$a->name" : r\promoLink(''));
+  if ($a and $a->co) return w\go("member/$a->name");
+  w\go(r\promoLink('')); return NULL;
+//  return w\go(($a and $a->co) ? "member/$a->name" : r\promoLink(''));
 }
 
 /**
