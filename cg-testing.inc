@@ -70,7 +70,7 @@ function fixData(&$info, $direct = FALSE) {
 function fixFlags($flags) {
   global $testOnly;
 
-  if (!@$flags or is_numeric($flags)) return $flags + 0;  
+  if (!@$flags) return 0; elseif (is_numeric($flags)) return $flags + 0;  
   $res = 0;
   foreach (ray($flags) as $one) $res |= u\bit(u\consta('b', $one));
 // NO! fails for r_txs and r_relations flags  if ($res & u\bit(B_OK)) $res |= u\bit(B_MEMBER);

@@ -802,7 +802,7 @@ function setV($name, $value) {
 
   $conf[$name] = $value;
 }
-function variable_set($k, $v) {return setV($k, $dft);} // for legacy Drupal
+function variable_set($k, $v) {return setV($k, $v);} // for legacy Drupal
 
 /**
  * Unsets a persistent variable.

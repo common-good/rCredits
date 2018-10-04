@@ -399,7 +399,8 @@ function rcredits_radio($variables) {
 }
 
 function rcredits_submit($variables) {
-  extract(rcElement($variables, 'tabled bare value title id size style parents class'));
+  $special = 'title class tickle';
+  extract(rcElement($variables, 'tabled bare value id size style parents ' . $special));
 //  if (!@$id) $id = 'edit-' . strtolower(strtr($value, [' '=>'-', '_'=>'-', '['=>'-', ']'=>'']));
   $id2 = 'edit-' . @$parents[0]; // whether or not id is set (assures mixed case when appropriate
   if (!@$id or $id == strtolower($id2)) $id = $id2;
@@ -408,7 +409,7 @@ function rcredits_submit($variables) {
 //  u\setDft($size, 'md');
 //  u\setDft($style, 'primary');
 //  u\setDft($name, @$parents[0]);
-  $variables['element']['#children'] = $res = spinLink('submit', $value, $id, @$style, @$size, compact('class'));
+  $variables['element']['#children'] = $res = spinLink('submit', $value, $id, @$style, @$size, compact(ray($special)));
 /*
   <<<EOF
   <button type="submit" id="$id" name="$name" value="$value" class="btn btn-$style btn-$size ladda-button" data-style="expand-right">

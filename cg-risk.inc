@@ -178,6 +178,7 @@ function setRisk($bitName = NULL, $multiplier = 1, $zot = '') {
   global $_risk, $_risks; // use _ to distinguish from extracted risk and risks fields (not needed, but clearer)
   global $_acctRisks, $_txRisks, $_acctRiskBits, $_txRiskBits;
 /// log("bitName=$bitName multiplier=$multiplier _risk=$_risk _risks=$_risks"); // debug()
+  if (!$multiplier) $multiplier = 0;
   
   if (@$_risk === '') {
     $_risk = $_risks = 0;

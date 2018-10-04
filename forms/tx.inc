@@ -15,7 +15,7 @@ function formTx($form, &$sta, $args = '') {
   extract(just('who amount goods purpose', $args));
   global $mya;
 
-  if (!$mya->can(B_SELL)) return w\go('summary');
+  if (!$mya->can(B_SELL)) return w\go('/summary');
   $type = strtolower($_SERVER['REQUEST_URI']);
   $paying = ($type == 'pay');
   
@@ -29,11 +29,12 @@ function formTx($form, &$sta, $args = '') {
   focusOn(@$who ? 'amount' : 'who');
 
   $title = $opDesc;
-  $subtext = $paying ? w\btn('/pay/payments', t('Upload Payments'), 'default') : '';
-  if ($mya->co) $subtext .= ' ' . ($paying 
+  $buttons = $paying ? w\btn('/pay/payments', t('Upload Payments'), 'default') : '';
+  if ($mya->co) $buttons .= ' ' . ($paying 
     ? w\btn('/pay/payroll', t('Upload Payroll'), 'default')
     : w\btn('/charge/invoices', t('Upload Invoices'), 'default')
   );
+  if (!$buttons) unset($buttons);
   $who = textFld($opDesc . t(' whom:'), [t('name, id, email, or phone')], required(@$who));
 
   $amount = textFld(t('Amount:'), [t('amount to ') . strtolower($opDesc)], required(@$amount));
@@ -45,10 +46,10 @@ function formTx($form, &$sta, $args = '') {
 
   w\whoFldSubmit('who', $opDesc . t(' %amount to %name?'), ray('allowNonmember', !$paying));
   
-  $form = cgform(compact(ray("title subtext who amount goods purpose calc $type")));
+  $form = cgform(compact(ray("title buttons who amount goods purpose calc $type")));
   $form['#attributes']['class'][] = $scanClass;
 
-  return keep_values($form); // get defaults from which('info')
+  return $form; // get defaults from which('info')
 }
 
 function formTx_validate($form, &$sta) {
@@ -60,7 +61,7 @@ function formTx_submit($form, &$sta) {
   global $mya;
   $myid = $mya->id;
   extract($info = just('who amount goods purpose', $sta['input']));
-  if (strpos($who, '@')) return w\go('charge/nonmember/' . u\urlify(serialize($info)));
+  if (strpos($who, '@')) return w\go('/charge/nonmember/' . u\urlify(serialize($info)));
 
   $paying = (op($sta) == 'pay');
   if (!$a = w\whois($who, 'who', $info, 'no self-trading', $paying)) return FALSE;
